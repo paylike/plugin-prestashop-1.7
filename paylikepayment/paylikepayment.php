@@ -4,7 +4,7 @@
  * @author    DerikonDevelopment <ionut@derikon.com>
  * @copyright Copyright (c) permanent, DerikonDevelopment
  * @license   Addons PrestaShop license limitation
- * @version   1.0.0
+ * @version   1.0.1
  * @link      http://www.derikon.com/
  *
  */
@@ -26,7 +26,7 @@ class PaylikePayment extends PaymentModule {
 	public function __construct() {
 		$this->name      = 'paylikepayment';
 		$this->tab       = 'payments_gateways';
-		$this->version   = '1.0.0';
+		$this->version   = '1.0.1';
 		$this->author    = 'DerikonDevelopment';
 		$this->bootstrap = true;
 
@@ -1920,7 +1920,6 @@ class PaylikePayment extends PaymentModule {
 					//Capture transaction
 					$data    = array(
 						'currency'   => $currency->iso_code,
-						'descriptor' => "Order #" . (int) $id_order,
 						'amount'     => $amount,
 					);
 					$capture = Paylike\Transaction::capture( $transactionid, $data );
@@ -2012,7 +2011,6 @@ class PaylikePayment extends PaymentModule {
 							//Capture transaction
 							$data    = array(
 								'currency'   => $currency->iso_code,
-								'descriptor' => "Order #" . (int) $id_order,
 								'amount'     => $amount,
 							);
 							$capture = Paylike\Transaction::capture( $transactionid, $data );

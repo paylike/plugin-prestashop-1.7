@@ -4,7 +4,7 @@
  * @author    DerikonDevelopment <ionut@derikon.com>
  * @copyright Copyright (c) permanent, DerikonDevelopment
  * @license   Addons PrestaShop license limitation
- * @version   1.0.0
+ * @version   1.0.1
  * @link      http://www.derikon.com/
  *
  */
@@ -121,7 +121,6 @@ class PaylikepaymentPaymentReturnModuleFrontController extends ModuleFrontContro
 			if ( $validOrder ) {
 				$data = array(
 					'currency'   => $currency->iso_code,
-					'descriptor' => "Order #" . $this->module->currentOrder,
 					'amount'     => $amount,
 				);
 
