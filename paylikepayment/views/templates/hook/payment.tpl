@@ -42,7 +42,7 @@
         var ecommerce = "{$ecommerce|escape:'htmlall':'UTF-8'}";
         var module_version = "{$module_version|escape:'htmlall':'UTF-8'}";
         var url_controller = "{$redirect_url|escape:'htmlall':'UTF-8'}";
-        var pay_text = "{$pay_text|escape:'htmlall':'UTF-8'}";
+        var pay_text = "{l s='Pay' mod='paylikepayment' js=1}";
         var qry_str = "{$qry_str}";
         var check = 0;
 

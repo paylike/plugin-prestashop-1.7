@@ -4,7 +4,7 @@
  * @author    DerikonDevelopment <ionut@derikon.com>
  * @copyright Copyright (c) permanent, DerikonDevelopment
  * @license   Addons PrestaShop license limitation
- * @version   1.0.1
+ * @version   1.0.2
  * @link      http://www.derikon.com/
  *
  */
@@ -47,10 +47,10 @@ class PaylikepaymentPaymentReturnModuleFrontController extends ModuleFrontContro
 		}
 
 		Paylike\Client::setKey( Configuration::get( 'PAYLIKE_SECRET_KEY' ) );
-		$total               = $cart->getOrderTotal( true, Cart::BOTH );
+		$cart_total               = $cart->getOrderTotal( true, Cart::BOTH );
 		$currency            = new Currency( (int) $cart->id_currency );
 		$currency_multiplier = $this->module->getPaylikeCurrencyMultiplier( $currency->iso_code );
-		$amount              = ceil( Tools::ps_round( $total, 2 ) * $currency_multiplier );
+		$cart_amount              = ceil( Tools::ps_round( $cart_total, 2 ) * $currency_multiplier );
 		$status_paid         = (int) Configuration::get( 'PAYLIKE_ORDER_STATUS' );
 		// $status_paid = Configuration::get('PS_OS_PAYMENT');
 		$transactionid = Tools::getValue( 'transactionid' );
@@ -67,9 +67,13 @@ class PaylikepaymentPaymentReturnModuleFrontController extends ModuleFrontContro
 					'paylike_error_message' => $fetch['message']
 				) );
 
-				return $this->setTemplate( 'payment_error.tpl' );
+				return $this->setTemplate( 'module:paylikepayment/views/templates/front/payment_error.tpl' );
 			} elseif ( is_array( $fetch ) && $fetch['transaction']['currency'] == $currency->iso_code ) {
 				//elseif (is_array($fetch) && $fetch['transaction']['currency'] == $currency->iso_code && $fetch['transaction']['custom']['orderId'] == $cart->id && (int)$fetch['transaction']['amount'] == (int)$amount) {
+
+				$total = $fetch['transaction']['amount'] / $currency_multiplier;
+				$amount = $fetch['transaction']['amount'];
+
 				$message = 'Trx ID: ' . $transactionid . '
                     Authorized Amount: ' . ( $fetch['transaction']['amount'] / $currency_multiplier ) . '
                     Captured Amount: ' . ( $fetch['transaction']['capturedAmount'] / $currency_multiplier ) . '
@@ -116,74 +120,73 @@ class PaylikepaymentPaymentReturnModuleFrontController extends ModuleFrontContro
 				$transaction_failed = true;
 			}
 		} else {
-			$validOrder = $this->module->validateOrder( (int) $cart->id, $status_paid, $total, $this->module->displayName, null, array(), null, false, $customer->secure_key );
 
-			if ( $validOrder ) {
-				$data = array(
-					'currency'   => $currency->iso_code,
-					'amount'     => $amount,
-				);
+			$data = array(
+				'currency'   => $currency->iso_code,
+				'amount'     => $cart_amount,
+			);
+			$capture = Paylike\Transaction::capture( $transactionid, $data );
 
-				$capture = Paylike\Transaction::capture( $transactionid, $data );
+			if ( is_array( $capture ) && ! empty( $capture['error'] ) && $capture['error'] == 1 ) {
+				PrestaShopLogger::addLog( $capture['message'] );
+				$this->context->smarty->assign( array(
+					'paylike_order_error'   => 1,
+					'paylike_error_message' => $capture['message']
+				) );
 
-				if ( is_array( $capture ) && ! empty( $capture['error'] ) && $capture['error'] == 1 ) {
-					PrestaShopLogger::addLog( $capture['message'] );
-					$this->context->smarty->assign( array(
-						'paylike_order_error'   => 1,
-						'paylike_error_message' => $capture['message']
-					) );
+				return $this->setTemplate( 'module:paylikepayment/views/templates/front/payment_error.tpl' );
+			} elseif ( ! empty( $capture['transaction'] ) ) {
 
-					return $this->setTemplate( 'payment_error.tpl' );
-				} elseif ( ! empty( $capture['transaction'] ) ) {
-					$message = 'Trx ID: ' . $transactionid . '
-                        Authorized Amount: ' . ( $capture['transaction']['amount'] / $currency_multiplier ) . '
-                        Captured Amount: ' . ( $capture['transaction']['capturedAmount'] / $currency_multiplier ) . '
-                        Order time: ' . $capture['transaction']['created'] . '
-                        Currency code: ' . $capture['transaction']['currency'];
+				$total = $capture['transaction']['amount'] / $currency_multiplier;
 
-					$message = strip_tags( $message, '<br>' );
-					if ( Validate::isCleanHtml( $message ) ) {
-						if ( $this->module->getPSV() == '1.7.2' ) {
-							$id_customer_thread = CustomerThread::getIdCustomerThreadByEmailAndIdOrder( $customer->email, $this->module->currentOrder );
-							if ( ! $id_customer_thread ) {
-								$customer_thread              = new CustomerThread();
-								$customer_thread->id_contact  = 0;
-								$customer_thread->id_customer = (int) $customer->id;
-								$customer_thread->id_shop     = (int) $this->context->shop->id;
-								$customer_thread->id_order    = (int) $this->module->currentOrder;
-								$customer_thread->id_lang     = (int) $this->context->language->id;
-								$customer_thread->email       = $customer->email;
-								$customer_thread->status      = 'open';
-								$customer_thread->token       = Tools::passwdGen( 12 );
-								$customer_thread->add();
-							} else {
-								$customer_thread = new CustomerThread( (int) $id_customer_thread );
-							}
+				$validOrder = $this->module->validateOrder( (int) $cart->id, $status_paid, $total, $this->module->displayName, null, array(), null, false, $customer->secure_key );
 
-							$customer_message                     = new CustomerMessage();
-							$customer_message->id_customer_thread = $customer_thread->id;
-							$customer_message->id_employee        = 0;
-							$customer_message->message            = $message;
-							$customer_message->private            = 1;
+				$message = 'Trx ID: ' . $transactionid . '
+                    Authorized Amount: ' . ( $capture['transaction']['amount'] / $currency_multiplier ) . '
+                    Captured Amount: ' . ( $capture['transaction']['capturedAmount'] / $currency_multiplier ) . '
+                    Order time: ' . $capture['transaction']['created'] . '
+                    Currency code: ' . $capture['transaction']['currency'];
 
-							$customer_message->add();
+				$message = strip_tags( $message, '<br>' );
+				if ( Validate::isCleanHtml( $message ) ) {
+					if ( $this->module->getPSV() == '1.7.2' ) {
+						$id_customer_thread = CustomerThread::getIdCustomerThreadByEmailAndIdOrder( $customer->email, $this->module->currentOrder );
+						if ( ! $id_customer_thread ) {
+							$customer_thread              = new CustomerThread();
+							$customer_thread->id_contact  = 0;
+							$customer_thread->id_customer = (int) $customer->id;
+							$customer_thread->id_shop     = (int) $this->context->shop->id;
+							$customer_thread->id_order    = (int) $this->module->currentOrder;
+							$customer_thread->id_lang     = (int) $this->context->language->id;
+							$customer_thread->email       = $customer->email;
+							$customer_thread->status      = 'open';
+							$customer_thread->token       = Tools::passwdGen( 12 );
+							$customer_thread->add();
 						} else {
-							$msg              = new Message();
-							$msg->message     = $message;
-							$msg->id_cart     = (int) $cart->id;
-							$msg->id_customer = (int) $cart->id_customer;
-							$msg->id_order    = (int) $this->module->currentOrder;
-							$msg->private     = 1;
-							$msg->add();
+							$customer_thread = new CustomerThread( (int) $id_customer_thread );
 						}
-					}
 
-					$this->module->storeTransactionID( $transactionid, $this->module->currentOrder, $total, $captured = 'YES' );
-					$redirectLink = __PS_BASE_URI__ . 'index.php?controller=order-confirmation&id_cart=' . $cart->id . '&id_module=' . $this->module->id . '&id_order=' . $this->module->currentOrder . '&key=' . $customer->secure_key;
-					Tools::redirectLink( $redirectLink );
-				} else {
-					$transaction_failed = true;
+						$customer_message                     = new CustomerMessage();
+						$customer_message->id_customer_thread = $customer_thread->id;
+						$customer_message->id_employee        = 0;
+						$customer_message->message            = $message;
+						$customer_message->private            = 1;
+
+						$customer_message->add();
+					} else {
+						$msg              = new Message();
+						$msg->message     = $message;
+						$msg->id_cart     = (int) $cart->id;
+						$msg->id_customer = (int) $cart->id_customer;
+						$msg->id_order    = (int) $this->module->currentOrder;
+						$msg->private     = 1;
+						$msg->add();
+					}
 				}
+
+				$this->module->storeTransactionID( $transactionid, $this->module->currentOrder, $total, $captured = 'YES' );
+				$redirectLink = __PS_BASE_URI__ . 'index.php?controller=order-confirmation&id_cart=' . $cart->id . '&id_module=' . $this->module->id . '&id_order=' . $this->module->currentOrder . '&key=' . $customer->secure_key;
+				Tools::redirectLink( $redirectLink );
 			} else {
 				$transaction_failed = true;
 			}
@@ -192,7 +195,7 @@ class PaylikepaymentPaymentReturnModuleFrontController extends ModuleFrontContro
 		if ( $transaction_failed ) {
 			$this->context->smarty->assign( 'paylike_order_error', 1 );
 
-			return $this->setTemplate( 'payment_error.tpl' );
+			return $this->setTemplate( 'module:paylikepayment/views/templates/front/payment_error.tpl' );
 		}
 	}
 }
