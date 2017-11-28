@@ -4,7 +4,7 @@
  * @author    DerikonDevelopment <ionut@derikon.com>
  * @copyright Copyright (c) permanent, DerikonDevelopment
  * @license   Addons PrestaShop license limitation
- * @version   1.0.1
+ * @version   1.0.2
  * @link      http://www.derikon.com/
  *
  */
@@ -26,7 +26,7 @@ class PaylikePayment extends PaymentModule {
 	public function __construct() {
 		$this->name      = 'paylikepayment';
 		$this->tab       = 'payments_gateways';
-		$this->version   = '1.0.1';
+		$this->version   = '1.0.2';
 		$this->author    = 'DerikonDevelopment';
 		$this->bootstrap = true;
 
@@ -708,8 +708,7 @@ class PaylikePayment extends PaymentModule {
 			'redirect_url'                   => $redirect_url,
 			'qry_str'                        => ( Configuration::get( 'PS_REWRITING_SETTINGS' ) ? '?' : '&' ),
 			'base_uri'                       => __PS_BASE_URI__,
-			'this_path_paylike'              => $this->_path,
-			'pay_text'                       => $this->l( 'Pay' )
+			'this_path_paylike'              => $this->_path
 		) );
 
 		$newOption = new PaymentOption();
@@ -755,14 +754,14 @@ class PaylikePayment extends PaymentModule {
 
 			foreach ( $fields as $field => $value ) {
 				$counter ++;
-				$fieldsStr .= '`' . $field . '` = "' . pSQL( $value ) . '"';
+				$fieldsStr .= '`' . pSQL( $field ). '` = "' . pSQL( $value ) . '"';
 
 				if ( $counter < $fieldCount ) {
 					$fieldsStr .= ', ';
 				}
 			}
 
-			$query = 'UPDATE ' . _DB_PREFIX_ . 'paylike_admin SET ' . $fieldsStr . ' WHERE `paylike_tid`="' . $paylike_id_transaction . '" AND `order_id`="' . $order_id . '"';
+			$query = 'UPDATE ' . _DB_PREFIX_ . 'paylike_admin SET ' . $fieldsStr . ' WHERE `paylike_tid`="' . pSQL( $paylike_id_transaction ). '" AND `order_id`="' . (int)$order_id . '"';
 
 			return Db::getInstance()->Execute( $query );
 		} else {
@@ -2346,7 +2345,7 @@ class PaylikePayment extends PaymentModule {
 			$sql       = new DbQuery();
 			$sql->select( '*' );
 			$sql->from( 'paylike_logos', 'PL' );
-			$sql->where( 'PL.slug = "' . $logo_slug . '"' );
+			$sql->where( 'PL.slug = "' . pSQL($logo_slug) . '"' );
 			$logos = Db::getInstance()->executes( $sql );
 			if ( ! empty( $logos ) ) {
 				$response = array(
