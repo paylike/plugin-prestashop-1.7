@@ -4,7 +4,7 @@
  * @author    DerikonDevelopment <ionut@derikon.com>
  * @copyright Copyright (c) permanent, DerikonDevelopment
  * @license   Addons PrestaShop license limitation
- * @version   1.0.2
+ * @version   1.0.3
  * @link      http://www.derikon.com/
  *
  */
@@ -26,7 +26,7 @@ class PaylikePayment extends PaymentModule {
 	public function __construct() {
 		$this->name      = 'paylikepayment';
 		$this->tab       = 'payments_gateways';
-		$this->version   = '1.0.2';
+		$this->version   = '1.0.3';
 		$this->author    = 'DerikonDevelopment';
 		$this->bootstrap = true;
 
@@ -989,7 +989,7 @@ class PaylikePayment extends PaymentModule {
 					'code'     => 'CLP',
 					'currency' => 'Chilean peso',
 					'numeric'  => '152',
-					'exponent' => 2,
+					'exponent' => 0,
 				),
 			'CNY' =>
 				array(
@@ -1760,7 +1760,7 @@ class PaylikePayment extends PaymentModule {
 					'code'     => 'UGX',
 					'currency' => 'Ugandan shilling',
 					'numeric'  => '800',
-					'exponent' => 2,
+					'exponent' => 0,
 				),
 			'USD' =>
 				array(
