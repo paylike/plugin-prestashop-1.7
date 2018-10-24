@@ -44,11 +44,9 @@
         var url_controller = "{$redirect_url|escape:'htmlall':'UTF-8'}";
         var pay_text = "{l s='Pay' mod='paylikepayment' js=1}";
         var qry_str = "{$qry_str}";
-        var check = 0;
 
         console.log(products);
-        //        var qweqweqweq = jQuery.parseJSON(products);
-        //        console.log(qweqweqweq);
+
         function pay() {
             paylike.popup({
                     title: popup_title,
@@ -81,8 +79,7 @@
                         location.href = htmlDecode(return_url);
                     }
                 });
-            ifCheckedUncheck(1);
-            check = 1;
+            ifCheckedUncheck();
         }
 
         function htmlDecode(url) {
@@ -92,82 +89,75 @@
 
         ////////////////////////////////////////////
 
-        function ifCheckedUncheck(val) {
-            $('input[type="checkbox"]').not(this).prop('checked', false);
-            if (val == 1) {
-//                $('#payment-confirmation').find("div").find("div").toggleClass('active disabled');
-                $('#payment-confirmation').find("div").find("div").removeClass('active');
-                $('#payment-confirmation').find("div").find("div").addClass('disabled');
-            } else {
-                $('#payment-confirmation').find("div").children(0).addClass('disabled');
-            }
+        function ifCheckedUncheck() {
+            $('#conditions-to-approve input[type="checkbox"]').not(this).prop('checked', false);
 
         }
 
-        var idOfPayLike;
-        var options = document.getElementsByClassName('payment-option');
-
-
-        for (var p = 0; p < options.length; p++) {
-
-            if (options[p].getElementsByTagName("span")[2].innerHTML == '{$payment_method_title}') {
-                idOfPayLike = options[p].getAttribute('id');
-            }
-        }
-
-        buttons = document.getElementById(idOfPayLike);
-
-        for (var i = 0; i < options.length - 1; i++) {
-
-            options[i].addEventListener('click', function () {
-
-                if (this.getAttribute('id') != buttons) {
-                    $(".ps-shown-by-js button").replaceWith('<button type="submit" disabled="disabled" style="background-color: #2fb5d2" class="btn btn-primary center-block">' + pay_text + '</button>');
-                    $(".ps-shown-by-js div").replaceWith('<button type="submit" disabled="disabled" style="background-color: #2fb5d2" class="btn btn-primary center-block">' + pay_text + '</button>');
-
-                    var buttonsPay = document.getElementById('payment-confirmation');
-                    buttonsPay.addEventListener('click', function (e) {
-                        e.preventDefault();
-                        return false;
-                    });
-                }
-            });
-        }
-
-        buttons.addEventListener('click', function () {
-
-            $(".ps-shown-by-js button").replaceWith('<div ' +
-                'style="-webkit-appearance: none; background-color: #2fb5d2;" ' +
-                'class="btn btn-primary center-block disabled ">' + pay_text + '</div>');
-
-            ifCheckedUncheck(0);
-
-            $('input[type="checkbox"]').click(function () {
-                var divButtonsPay = document.getElementById('payment-confirmation').firstElementChild || elem.firstChild;
-                var buttonsPay = divButtonsPay.firstElementChild || elem.firstChild;
+        function bindTermsCheck() {
+            $('#conditions-to-approve input[type="checkbox"]').change(function () {
+                var $paymentConfirmation = $('#payment-confirmation');
                 if ($(this).prop("checked") == true) {
-                    $('#payment-confirmation').find("div").find("div").removeClass('disabled');
-                    $('#payment-confirmation').find("div").find("div").addClass('active');
-                    check = 0;
-                    buttonsPay.addEventListener('click', function (e) {
-                        if (check == 0) {
-                            e.preventDefault();
-                            pay();
-                        }
-                        return false;
-                    });
-
-                } else if ($(this).prop("checked") == false) {
-                    buttonsPay.addEventListener('click', function (e) {
-                        e.preventDefault();
-                        return false;
-                    });
-//                    $('#payment-confirmation').find("div").children(0).toggleClass('active disabled');
-                    $('#payment-confirmation').find("div").find("div").removeClass('active');
-                    $('#payment-confirmation').find("div").find("div").addClass('disabled');
+                    $paymentConfirmation.find("div").removeClass('disabled').addClass('active');
+                    $paymentConfirmation.find("button").removeClass('disabled').addClass('active');
+                } else {
+                    $paymentConfirmation.find("div").removeClass('active').addClass('disabled');
+                    $paymentConfirmation.find("button").removeClass('active').addClass('disabled');
                 }
             });
-        });
+        }
+
+        function bindPaymentMethodsClick() {
+            var paymentMethodsAll = document.querySelectorAll('.payment-option');
+            if (!paymentMethodsAll) return false;
+
+            for (var x = 0; x < paymentMethodsAll.length; x++) {
+                paymentMethodsAll[x].addEventListener("click", function (e) {
+                    maybeBindPaylikePopup();
+                });
+            }
+            $()
+        }
+
+        function bindPaylkePopup() {
+            $('#pay-by-paylike').on('click', function (e) {
+                e.preventDefault();
+                if (!$('#conditions-to-approve input[type="checkbox"]:checked').length) return false;
+                pay();
+            });
+        }
+
+        function maybeBindPaylikePopup() {
+            var paymentMethod = document.querySelector('input[name="payment-option"]:checked');
+            if (!paymentMethod) return false;
+            var $payButton = $('#pay-by-paylike');
+            var $submitButton = $('#payment-confirmation button');
+            // uncheck terms checkbox
+            ifCheckedUncheck();
+            // if payment method is not paylike add the buttons back
+            if (paymentMethod.dataset.moduleName !== 'paylikepayment') {
+                $submitButton.removeClass('hide-element');
+                $payButton.addClass('hide-element');
+            } else {
+                if (!$payButton.length) {
+                    $submitButton.after('<div ' +
+                        'style="-webkit-appearance: none; background-color: #2fb5d2;" ' +
+                        'class="btn btn-primary center-block disabled " id="pay-by-paylike">' + pay_text + '</div>');
+                    bindPaylkePopup();
+                }
+                $submitButton.addClass('hide-element');
+                $payButton.removeClass('hide-element');
+
+            }
+        }
+
+        window.onload = function () {
+            bindPaymentMethodsClick();
+            maybeBindPaylikePopup();
+            bindPaylkePopup();
+            bindTermsCheck();
+        }
+
         ////////////////////////////////////////////
 
 
@@ -179,27 +169,32 @@
             </p>
         </div>
     </div>*}
+    <style>
+        .hide-element {
+            display: none !important;
+        }
+    </style>
     <div class="row">
         <div class="col-xs-12 col-md-12">
             <div class="payment_module paylike-payment clearfix"
-                    style="
-                            border: 1px solid #d6d4d4;
-                            border-radius: 4px;
-                            color: #333333;
-                            display: block;
-                            font-size: 17px;
-                            font-weight: bold;
-                            letter-spacing: -1px;
-                            line-height: 23px;
-                            padding: 20px 20px;
-                            position: relative;
-                            cursor:pointer;
-                            margin-top: 10px;
-                    {*" onclick="pay();" >*}
-                            ">
+                 style="
+                         border: 1px solid #d6d4d4;
+                         border-radius: 4px;
+                         color: #333333;
+                         display: block;
+                         font-size: 17px;
+                         font-weight: bold;
+                         letter-spacing: -1px;
+                         line-height: 23px;
+                         padding: 20px 20px;
+                         position: relative;
+                         cursor:pointer;
+                         margin-top: 10px;
+                 {*" onclick="pay();" >*}
+                         ">
                 <input style="float:left;" id="paylike-btn" type="image" name="submit"
-                        src="{$this_path_paylike}logo.png" alt=""
-                        style="vertical-align: middle; margin-right: 10px; width:57px; height:57px;"/>
+                       src="{$this_path_paylike}logo.png" alt=""
+                       style="vertical-align: middle; margin-right: 10px; width:57px; height:57px;"/>
                 <div style="float:left; margin-left:10px;">
                     <span style="margin-right: 10px;">{l s={$payment_method_title} mod='paylikepayment'}</span>
                     <span>
