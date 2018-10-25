@@ -10,7 +10,7 @@ You can also find information about the plugin here: https://paylike.io/plugins/
 ## Supported Prestashop versions
 
 * The plugin has been tested with most versions of Prestashop at every iteration. We recommend using the latest version of Prestashop, but if that is not possible for some reason, test the plugin with your Prestashop version and it would probably function properly. 
-* Magento version last tested on: *1.7.4.3*
+* Prestashop version last tested on: *1.7.4.3*
 
 ## Installation
 
