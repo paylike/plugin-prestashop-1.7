@@ -86,9 +86,13 @@ class PrestashopRunner extends PrestashopTestHelper {
 	 */
 	public function disableEmail() {
 		if ( $this->stop_email === true ) {
-			$this->goToPage( '/index.php?controller=AdminEmails', '#PS_MAIL_METHOD_3', true );
-			$this->checkbox( '#PS_MAIL_METHOD_3' );
-			$this->click( 'submitOptionsmail' );
+			try {
+				$this->goToPage( '/index.php?controller=AdminEmails', '#PS_MAIL_METHOD_3', true );
+				$this->checkbox( '#PS_MAIL_METHOD_3' );
+				$this->click( 'submitOptionsmail' );
+			}catch (\Exception $exception){
+				// not possible in new versions
+			}
 		}
 	}
 
