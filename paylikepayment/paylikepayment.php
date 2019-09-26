@@ -4,7 +4,7 @@
  * @author    DerikonDevelopment <ionut@derikon.com>
  * @copyright Copyright (c) permanent, DerikonDevelopment
  * @license   Addons PrestaShop license limitation
- * @version   1.0.3
+ * @version   1.0.4
  * @link      http://www.derikon.com/
  *
  */
@@ -26,7 +26,7 @@ class PaylikePayment extends PaymentModule {
 	public function __construct() {
 		$this->name      = 'paylikepayment';
 		$this->tab       = 'payments_gateways';
-		$this->version   = '1.0.3';
+		$this->version   = '1.0.4';
 		$this->author    = 'DerikonDevelopment';
 		$this->bootstrap = true;
 
@@ -662,7 +662,7 @@ class PaylikePayment extends PaymentModule {
 		$currency            = new Currency( (int) $params['cart']->id_currency );
 		$currency_code       = $currency->iso_code;
 		$currency_multiplier = $this->getPaylikeCurrencyMultiplier( $currency->iso_code );
-		$amount              = ceil( $params['cart']->getOrderTotal() * $currency_multiplier );
+		$amount              = $this->getPaylikeAmount(  $params['cart']->getOrderTotal(), $currency_multiplier );
 		$customer            = new Customer( (int) $params['cart']->id_customer );
 		$name                = $customer->firstname . ' ' . $customer->lastname;
 		$email               = $customer->email;
@@ -784,6 +784,26 @@ class PaylikePayment extends PaymentModule {
 			return pow( 10, 2 );
 		}
 	}
+
+	/**
+	 * Get Paylike amount to pay
+	 *
+	 * @param float $total Amount due.
+	 * @param       $currency_iso_code
+	 *
+	 * @return float|int
+	 */
+	public function getPaylikeAmount( $total, $currency_iso_code ) {
+		$multiplier = $this->getPaylikeCurrencyMultiplier( $currency_iso_code );
+		$amount     = ceil( $total * $multiplier ); // round to make sure we are always minor units.
+		if ( function_exists( 'bcmul' ) ) {
+			$amount = ceil( bcmul( $total, $multiplier ) );
+		}
+
+		return $amount;
+	}
+
+
 
 	public function getPaylikeCurrency( $currency_iso_code ) {
 		$currencies = array(
@@ -1408,11 +1428,11 @@ class PaylikePayment extends PaymentModule {
 					'numeric'  => '446',
 					'exponent' => 2,
 				),
-			'MRO' =>
+			'MRU' =>
 				array(
-					'code'     => 'MRO',
+					'code'     => 'MRU',
 					'currency' => 'Mauritanian ouguiya',
-					'numeric'  => '478',
+					'numeric'  => '929',
 					'exponent' => 2,
 				),
 			'MUR' =>
@@ -1664,11 +1684,11 @@ class PaylikePayment extends PaymentModule {
 					'numeric'  => '968',
 					'exponent' => 2,
 				),
-			'STD' =>
+			'STN' =>
 				array(
-					'code'     => 'STD',
+					'code'     => 'STN',
 					'currency' => 'São Tomé and Príncipe dobra',
-					'numeric'  => '678',
+					'numeric'  => '930',
 					'exponent' => 2,
 				),
 			'SYP' =>
@@ -1784,11 +1804,11 @@ class PaylikePayment extends PaymentModule {
 					'numeric'  => '860',
 					'exponent' => 2,
 				),
-			'VEF' =>
+			'VES' =>
 				array(
 					'code'     => 'VEF',
 					'currency' => 'Venezuelan bolívar',
-					'numeric'  => '937',
+					'numeric'  => '928',
 					'exponent' => 2,
 				),
 			'VND' =>
@@ -2128,8 +2148,7 @@ class PaylikePayment extends PaymentModule {
 							);
 						} else {
 							//Refund transaction
-							$currency_multiplier = $this->getPaylikeCurrencyMultiplier( $currency->iso_code );
-							$amount              = ceil( Tools::ps_round( $paylike_amount_to_refund, 2 ) * $currency_multiplier );
+							$amount              = $this->getPaylikeAmount($paylike_amount_to_refund, $currency->iso_code);
 							$data                = array(
 								'descriptor' => '',
 								'amount'     => $amount,

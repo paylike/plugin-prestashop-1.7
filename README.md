@@ -1,16 +1,18 @@
-# Prestashop plugin for Paylike
+# Prestashop plugin for Paylike [![Build Status](https://travis-ci.org/paylike/plugin-prestashop-1.7.svg?branch=master)](https://travis-ci.org/paylike/plugin-prestashop-1.7)
 
 This plugin is *not* developed or maintained by Paylike but kindly made
 available by the community.
 
 Released under the MIT license: https://opensource.org/licenses/MIT
 
-You can also find information about the plugin here: https://paylike.io/plugins/prestashop
+You can also find information about the plugin here: https://paylike.io/plugins/prestashop-1.7
 
 ## Supported Prestashop versions
 
+
+[![Last succesfull test](https://log.derikon.ro/api/v1/log/read?tag=prestashop&view=svg&label=Prestashop&key=ecommerce&background=011638)](https://log.derikon.ro/api/v1/log/read?tag=prestashop&view=html)
+
 * The plugin has been tested with most versions of Prestashop at every iteration. We recommend using the latest version of Prestashop, but if that is not possible for some reason, test the plugin with your Prestashop version and it would probably function properly. 
-* Prestashop version last tested on: *1.7.4.3*
 
 ## Installation
 
@@ -35,5 +37,9 @@ Under the extension settings, you can:
  * To refund an order you can use the paylike tool box you can find on the order edit screen by selecting refund in the select and inputing the amount.
  * To void an order you can use the paylike tool box by selecting Void.
  * To capture an order in delayed mode, you can either use the status set in settings (move the order to that status), or you can use the tool. 
+ 
+ ## Advanced
+ 
+ Due to the floating point precision issue with some numbers, it is recommended to have the bcmath extension installed. 
  
   
