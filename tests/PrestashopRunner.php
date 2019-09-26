@@ -120,7 +120,7 @@ class PrestashopRunner extends PrestashopTestHelper {
 
 	private function logVersionsRemotly() {
 		$versions = $this->getVersions();
-		$this->wd->get( getenv( 'REMOTE_LOG_URL' ) . '&key=' . $this->get_slug( $versions['ecommerce'] ) . '&tag=prestashop&view=html&' . http_build_query( $versions ) );
+		$this->wd->get( getenv( 'REMOTE_LOG_URL' ) . '&key=' . $this->get_slug( $versions['ecommerce'] ) . '&tag=prestashop17&view=html&' . http_build_query( $versions ) );
 		$this->waitForElement( '#message' );
 		$message = $this->getText( '#message' );
 		$this->main_test->assertEquals( 'Success!', $message, "Remote log failed" );

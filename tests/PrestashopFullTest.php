@@ -99,7 +99,6 @@ class PrestashopFullTest extends AbstractTestCase {
 		$this->runner->ready( array(
 				'currency'               => 'DKK',
 				'capture_mode'           => 'instant',
-				'log_version' => true,
 			)
 		);
 	}

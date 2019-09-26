@@ -4,7 +4,7 @@
  * @author    DerikonDevelopment <ionut@derikon.com>
  * @copyright Copyright (c) permanent, DerikonDevelopment
  * @license   Addons PrestaShop license limitation
- * @version   1.0.3
+ * @version   1.0.4
  * @link      http://www.derikon.com/
  *
  */
@@ -50,7 +50,7 @@ class PaylikepaymentPaymentReturnModuleFrontController extends ModuleFrontContro
 		$cart_total               = $cart->getOrderTotal( true, Cart::BOTH );
 		$currency            = new Currency( (int) $cart->id_currency );
 		$currency_multiplier = $this->module->getPaylikeCurrencyMultiplier( $currency->iso_code );
-		$cart_amount              = ceil( Tools::ps_round( $cart_total, 2 ) * $currency_multiplier );
+		$cart_amount              = $this->module->getPaylikeAmount( $cart_total, $currency->iso_code );
 		$status_paid         = (int) Configuration::get( 'PAYLIKE_ORDER_STATUS' );
 		// $status_paid = Configuration::get('PS_OS_PAYMENT');
 		$transactionid = Tools::getValue( 'transactionid' );
