@@ -67,8 +67,12 @@ class PrestashopTestHelper {
 				$this->waitForElement( $waitForSelector );
 			}
 		} catch ( NoSuchElementException $exception ) {
-			if ( WebDriverExpectedCondition::titleIs( 'Invalid security token' ) ) {
-				$this->click( '.btn-continue' );
+			if ( WebDriverExpectedCondition::titleIs( 'Invalid security token' ) || WebDriverExpectedCondition::titleIs( 'Invalid token' ) ) {
+				try {
+					$this->click( '.btn-continue' );
+				}catch (NoSuchElementException $exception){
+					$this->click( '.btn-outline-danger');
+				}
 				$this->waitForElement( $waitForSelector );
 			} else {
 				throwException( $exception );
