@@ -1408,11 +1408,11 @@ class PaylikePayment extends PaymentModule {
 					'numeric'  => '446',
 					'exponent' => 2,
 				),
-			'MRO' =>
+			'MRU' =>
 				array(
-					'code'     => 'MRO',
+					'code'     => 'MRU',
 					'currency' => 'Mauritanian ouguiya',
-					'numeric'  => '478',
+					'numeric'  => '929',
 					'exponent' => 2,
 				),
 			'MUR' =>
@@ -1664,11 +1664,11 @@ class PaylikePayment extends PaymentModule {
 					'numeric'  => '968',
 					'exponent' => 2,
 				),
-			'STD' =>
+			'STN' =>
 				array(
-					'code'     => 'STD',
+					'code'     => 'STN',
 					'currency' => 'São Tomé and Príncipe dobra',
-					'numeric'  => '678',
+					'numeric'  => '930',
 					'exponent' => 2,
 				),
 			'SYP' =>
@@ -1784,11 +1784,11 @@ class PaylikePayment extends PaymentModule {
 					'numeric'  => '860',
 					'exponent' => 2,
 				),
-			'VEF' =>
+			'VES' =>
 				array(
 					'code'     => 'VEF',
 					'currency' => 'Venezuelan bolívar',
-					'numeric'  => '937',
+					'numeric'  => '928',
 					'exponent' => 2,
 				),
 			'VND' =>

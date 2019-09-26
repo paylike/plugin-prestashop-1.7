@@ -45,3 +45,7 @@ crashlytics-build.properties
 fabric.properties
 .idea
 .DS_Store
+.env
+.env.production
+vendor
+logs
