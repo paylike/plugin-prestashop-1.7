@@ -77,3 +77,27 @@ function ajaxSaveLogo(e) {
 
     return false;
 }
+
+$(function() {
+    /** Triggers for hiding and showing LIVE/STAGING INPUTS */
+    $(document).ready(checkTransactionMode);
+    $(document).on('change', 'select[name="PAYLIKE_TRANSACTION_MODE"]', checkTransactionMode);
+});
+
+/** Function to hide or show LIVE/TEST inputs on module configuration page */
+function checkTransactionMode(e) {
+    var isLive = $(document).find('select[name="PAYLIKE_TRANSACTION_MODE"] :selected').val() == 'live';
+    /** If the live mode is chacked */
+    if (isLive) {
+        /** Hide - Staging - Site ID / Private Key */
+        $('#PAYLIKE_TEST_SECRET_KEY, #PAYLIKE_TEST_PUBLIC_KEY').closest('.form-group').slideUp(0);
+        /** Show - Live - Site ID / Private Key */
+        $('#PAYLIKE_LIVE_SECRET_KEY, #PAYLIKE_LIVE_PUBLIC_KEY').closest('.form-group').slideDown(0);
+    }
+    else {
+        /** Show - Staging - Site ID / Private Key */
+        $('#PAYLIKE_TEST_SECRET_KEY, #PAYLIKE_TEST_PUBLIC_KEY').closest('.form-group').slideDown(0);
+        /** Hide - Live - Site ID / Private Key */
+        $('#PAYLIKE_LIVE_SECRET_KEY, #PAYLIKE_LIVE_PUBLIC_KEY').closest('.form-group').slideUp(0);
+    }
+}
