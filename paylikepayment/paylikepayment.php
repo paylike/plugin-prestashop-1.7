@@ -33,8 +33,7 @@ class PaylikePayment extends PaymentModule {
 		$this->currencies      = true;
 		$this->currencies_mode = 'checkbox';
 
-		$this->validationTestPublicKeys = [];
-		$this->validationLivePublicKeys = [];
+		$this->validationPublicKeys = [];
 
 		parent::__construct();
 
@@ -641,11 +640,7 @@ class PaylikePayment extends PaymentModule {
 			$merchants = $paylikeClient->merchants()->find( $identity['id'] );
 			if ( $merchants ) {
 				foreach ( $merchants as $merchant ) {
-					if ( $mode == 'test' && $merchant['test'] ) {
-						$this->validationTestPublicKeys[] = $merchant['key'];
-					}else if ( $mode == 'live' && !$merchant['test'] ) {
-						$this->validationLivePublicKeys[] = $merchant['key'];
-					}
+						$this->validationTestPublicKeys[$mode] = $merchant['key'];
 				}
 			}
 		} catch ( \Paylike\Exception\ApiException $exception ) {
@@ -680,16 +675,10 @@ class PaylikePayment extends PaymentModule {
 		/** Check if the seek value is not empty **/
 		$error = '';
 		if ( $value ) {
-			/** Assign the coressponding public keys array for each mode **/
-			if($mode == "live"){
-				$publicKeys = $this->validationLivePublicKeys;
-			}else if($mode == "test"){
-				$publicKeys = $this->validationTestPublicKeys;
-			}
-			/** Check if the local stored public keys array is not empty **/
-			if ( ! empty( $publicKeys ) ) {
+			/** Check if the local stored public keys array is defined **/
+			if ( !empty( $this->validationPublicKeys[$mode] ) ) {
 				/** Search the public key in the list of allowed public keys **/
-				if ( ! in_array( $value, $publicKeys ) ) {
+				if ( ! in_array( $value, $this->validationTestPublicKeys[$mode] ) ) {
 					$error = $this->l( 'The '.$mode.' Public Key doesn\'t seem to be valid' );
 					PrestaShopLogger::addLog( $error );
 				}

@@ -1,8 +1,8 @@
 [
     {
         "name": "paylike/php-api",
-        "version": "1.0.6",
-        "version_normalized": "1.0.6.0",
+        "version": "1.0.5",
+        "version_normalized": "1.0.5.0",
         "source": {
             "type": "git",
             "url": "https://github.com/paylike/php-api.git",

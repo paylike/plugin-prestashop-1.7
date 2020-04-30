@@ -4,11 +4,11 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "8d55c4286b5094d6c65dc7318ce6d98d",
+    "content-hash": "ca7e3f225a01fbce3e6d66282a9199ff",
     "packages": [
         {
             "name": "paylike/php-api",
-            "version": "1.0.6",
+            "version": "1.0.5",
             "source": {
                 "type": "git",
                 "url": "https://github.com/paylike/php-api.git",
