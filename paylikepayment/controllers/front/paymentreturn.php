@@ -4,7 +4,7 @@
  * @author    DerikonDevelopment <ionut@derikon.com>
  * @copyright Copyright (c) permanent, DerikonDevelopment
  * @license   Addons PrestaShop license limitation
- * @version   1.0.4
+ * @version   1.0.6
  * @link      http://www.derikon.com/
  *
  */
@@ -79,7 +79,7 @@ class PaylikepaymentPaymentReturnModuleFrontController extends ModuleFrontContro
                     Captured Amount: ' . ( $fetch['transaction']['capturedAmount'] / $currency_multiplier ) . '
                     Order time: ' . $fetch['transaction']['created'] . '
                     Currency code: ' . $fetch['transaction']['currency'];
-				if ( $this->module->validateOrder( (int) $cart->id, 2, $total, $this->module->displayName, $message, array(), null, false, $customer->secure_key ) ) {
+				if ( $this->module->validateOrder( (int) $cart->id, 2, $total, $this->module->displayName, $message, array('transaction_id' => $transactionid), null, false, $customer->secure_key ) ) {
 
 					if ( Validate::isCleanHtml( $message ) ) {
 						if ( $this->module->getPSV() == '1.7.2' ) {
@@ -139,7 +139,7 @@ class PaylikepaymentPaymentReturnModuleFrontController extends ModuleFrontContro
 
 				$total = $capture['transaction']['amount'] / $currency_multiplier;
 
-				$validOrder = $this->module->validateOrder( (int) $cart->id, $status_paid, $total, $this->module->displayName, null, array(), null, false, $customer->secure_key );
+				$validOrder = $this->module->validateOrder( (int) $cart->id, $status_paid, $total, $this->module->displayName, null, array('transaction_id' => $transactionid), null, false, $customer->secure_key );
 
 				$message = 'Trx ID: ' . $transactionid . '
                     Authorized Amount: ' . ( $capture['transaction']['amount'] / $currency_multiplier ) . '

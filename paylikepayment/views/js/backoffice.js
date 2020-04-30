@@ -79,7 +79,7 @@ function ajaxSaveLogo(e) {
 }
 
 $(function() {
-    /** Triggers for hiding and showing LIVE/STAGING INPUTS */
+    /** Triggers for hide/show LIVE/TEST INPUTS */
     $(document).ready(checkTransactionMode);
     $(document).on('change', 'select[name="PAYLIKE_TRANSACTION_MODE"]', checkTransactionMode);
 });
@@ -87,17 +87,17 @@ $(function() {
 /** Function to hide or show LIVE/TEST inputs on module configuration page */
 function checkTransactionMode(e) {
     var isLive = $(document).find('select[name="PAYLIKE_TRANSACTION_MODE"] :selected').val() == 'live';
-    /** If the live mode is chacked */
+    /** If the live mode is selected */
     if (isLive) {
-        /** Hide - Staging - Site ID / Private Key */
+        /** Hide - Testing - App Key / Public Key */
         $('#PAYLIKE_TEST_SECRET_KEY, #PAYLIKE_TEST_PUBLIC_KEY').closest('.form-group').slideUp(0);
-        /** Show - Live - Site ID / Private Key */
+        /** Show - Live - App Key / Public Key */
         $('#PAYLIKE_LIVE_SECRET_KEY, #PAYLIKE_LIVE_PUBLIC_KEY').closest('.form-group').slideDown(0);
     }
     else {
-        /** Show - Staging - Site ID / Private Key */
+        /** Show - Testing - App Key / Public Key */
         $('#PAYLIKE_TEST_SECRET_KEY, #PAYLIKE_TEST_PUBLIC_KEY').closest('.form-group').slideDown(0);
-        /** Hide - Live - Site ID / Private Key */
+        /** Hide - Live - App Key / Public Key */
         $('#PAYLIKE_LIVE_SECRET_KEY, #PAYLIKE_LIVE_PUBLIC_KEY').closest('.form-group').slideUp(0);
     }
 }
