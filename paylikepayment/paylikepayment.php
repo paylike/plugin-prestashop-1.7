@@ -640,7 +640,9 @@ class PaylikePayment extends PaymentModule {
 			$merchants = $paylikeClient->merchants()->find( $identity['id'] );
 			if ( $merchants ) {
 				foreach ( $merchants as $merchant ) {
-						$this->validationTestPublicKeys[$mode] = $merchant['key'];
+						if(($mode == 'test' && $merchant['test']) || !$merchant['test']){
+							$this->validationPublicKeys[$mode][] = $merchant['key'];
+						}
 				}
 			}
 		} catch ( \Paylike\Exception\ApiException $exception ) {
@@ -648,12 +650,12 @@ class PaylikePayment extends PaymentModule {
 		}
 
 		if($mode == "live"){
-			if ( empty( $this->validationLivePublicKeys ) ) {
+			if ( empty( $this->validationPublicKeys[$mode] ) ) {
 				$error = $this->l( 'The live App Key is not valid or set to test mode.' );
 				PrestaShopLogger::addLog( $error );
 			}
 		}else if($mode == "test"){
-			if ( empty( $this->validationTestPublicKeys ) ) {
+			if ( empty( $this->validationPublicKeys[$mode] ) ) {
 				$error = $this->l( 'The test App Key is not valid or set to live mode.' );
 				PrestaShopLogger::addLog( $error );
 			}
@@ -678,7 +680,7 @@ class PaylikePayment extends PaymentModule {
 			/** Check if the local stored public keys array is defined **/
 			if ( !empty( $this->validationPublicKeys[$mode] ) ) {
 				/** Search the public key in the list of allowed public keys **/
-				if ( ! in_array( $value, $this->validationTestPublicKeys[$mode] ) ) {
+				if ( ! in_array( $value, $this->validationPublicKeys[$mode] ) ) {
 					$error = $this->l( 'The '.$mode.' Public Key doesn\'t seem to be valid' );
 					PrestaShopLogger::addLog( $error );
 				}
