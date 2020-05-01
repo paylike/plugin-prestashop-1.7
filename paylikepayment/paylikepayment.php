@@ -26,14 +26,14 @@ class PaylikePayment extends PaymentModule {
 	public function __construct() {
 		$this->name      = 'paylikepayment';
 		$this->tab       = 'payments_gateways';
-		$this->version   = '1.0.4';
+		$this->version   = '1.0.6';
 		$this->author    = 'DerikonDevelopment';
 		$this->bootstrap = true;
 
 		$this->currencies      = true;
 		$this->currencies_mode = 'checkbox';
 
-		$this->validationPublicKeys = [];
+		$this->validationPublicKeys = array ('live'=>array(),'test'=>array());
 
 		parent::__construct();
 
@@ -639,8 +639,10 @@ class PaylikePayment extends PaymentModule {
 			/** Load the merchants public keys list corresponding for current identity **/
 			$merchants = $paylikeClient->merchants()->find( $identity['id'] );
 			if ( $merchants ) {
+
 				foreach ( $merchants as $merchant ) {
-						if(($mode == 'test' && $merchant['test']) || !$merchant['test']){
+						/** Check if the key mode is the same as the transaction mode **/
+						if(($mode == 'test' && $merchant['test']) || ($mode != 'test' && !$merchant['test'])){
 							$this->validationPublicKeys[$mode][] = $merchant['key'];
 						}
 				}
@@ -649,16 +651,11 @@ class PaylikePayment extends PaymentModule {
 			PrestaShopLogger::addLog( $exception );
 		}
 
-		if($mode == "live"){
-			if ( empty( $this->validationPublicKeys[$mode] ) ) {
-				$error = $this->l( 'The live App Key is not valid or set to test mode.' );
-				PrestaShopLogger::addLog( $error );
-			}
-		}else if($mode == "test"){
-			if ( empty( $this->validationPublicKeys[$mode] ) ) {
-				$error = $this->l( 'The test App Key is not valid or set to live mode.' );
-				PrestaShopLogger::addLog( $error );
-			}
+		/** Check if public keys array for the current mode is populated **/
+		if ( empty( $this->validationPublicKeys[$mode] ) ) {
+			/** Generate the error based on the current mode **/
+			$error = $this->l( 'The '.$mode .' App Key is not valid or set to '.array_values(array_diff(array_keys($this->validationPublicKeys), array($mode)))[0].' mode.' );
+			PrestaShopLogger::addLog( $error );
 		}
 
 		return $error;
