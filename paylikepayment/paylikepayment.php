@@ -55,10 +55,10 @@ class PaylikePayment extends PaymentModule {
 		Configuration::updateValue( 'PAYLIKE_SHOW_POPUP_DESC', 'no' );
 		Configuration::updateValue( $language_code . '_PAYLIKE_POPUP_DESC', '' );
 		Configuration::updateValue( 'PAYLIKE_TRANSACTION_MODE', 'test' );
-		Configuration::updateValue( 'PAYLIKE_TEST_PUBLIC_KEY', '' );
 		Configuration::updateValue( 'PAYLIKE_TEST_SECRET_KEY', '' );
-		Configuration::updateValue( 'PAYLIKE_LIVE_PUBLIC_KEY', '' );
+		Configuration::updateValue( 'PAYLIKE_TEST_PUBLIC_KEY', '' );
 		Configuration::updateValue( 'PAYLIKE_LIVE_SECRET_KEY', '' );
+		Configuration::updateValue( 'PAYLIKE_LIVE_PUBLIC_KEY', '' );
 		Configuration::updateValue( 'PAYLIKE_CHECKOUT_MODE', 'delayed' );
 		Configuration::updateValue( 'PAYLIKE_ORDER_STATUS', Configuration::get( 'PAYLIKE_ORDER_STATUS' ) );
 		Configuration::updateValue( 'PAYLIKE_STATUS', 'enabled' );
@@ -169,10 +169,10 @@ class PaylikePayment extends PaymentModule {
 			&& Configuration::deleteByName( 'PAYLIKE_SHOW_POPUP_DESC' )
 			&& Configuration::deleteByName( 'PAYLIKE_POPUP_DESC' )
 			&& Configuration::deleteByName( 'PAYLIKE_TRANSACTION_MODE' )
-			&& Configuration::deleteByName( 'PAYLIKE_TEST_PUBLIC_KEY' )
 			&& Configuration::deleteByName( 'PAYLIKE_TEST_SECRET_KEY' )
-			&& Configuration::deleteByName( 'PAYLIKE_LIVE_PUBLIC_KEY' )
+			&& Configuration::deleteByName( 'PAYLIKE_TEST_PUBLIC_KEY' )
 			&& Configuration::deleteByName( 'PAYLIKE_LIVE_SECRET_KEY' )
+			&& Configuration::deleteByName( 'PAYLIKE_LIVE_PUBLIC_KEY' )
 			&& Configuration::deleteByName( 'PAYLIKE_CHECKOUT_MODE' )
 			&& Configuration::deleteByName( 'PAYLIKE_ORDER_STATUS' )
 			&& Configuration::deleteByName( 'PAYLIKE_STATUS' )
@@ -207,54 +207,46 @@ class PaylikePayment extends PaymentModule {
 				$creditCardLogo = Tools::getvalue( 'PAYLIKE_PAYMENT_METHOD_CREDITCARD_LOGO' );
 			}
 
-
 			if ( Tools::getvalue( 'PAYLIKE_TRANSACTION_MODE' ) == 'test' ) {
-				if ( ! Tools::getvalue( 'PAYLIKE_TEST_SECRET_KEY' ) ) {
-					$this->context->controller->errors['PAYLIKE_TEST_SECRET_KEY'] = $this->l( 'Test mode App Key required!' );
-					$PAYLIKE_TEST_SECRET_KEY                                      = ( ! empty( Configuration::get( 'PAYLIKE_TEST_SECRET_KEY' ) ) ) ? Configuration::get( 'PAYLIKE_TEST_SECRET_KEY' ) : '';
+				/** Load db value or set it to empty **/
+				$PAYLIKE_TEST_SECRET_KEY = ( ! empty( Configuration::get( 'PAYLIKE_TEST_SECRET_KEY' ) ) ) ? Configuration::get( 'PAYLIKE_TEST_SECRET_KEY' ) : '';
+				$validationPublicKeyMessage = $this->validateAppKeyField(Tools::getvalue( 'PAYLIKE_TEST_SECRET_KEY' ),'test');
+				if($validationPublicKeyMessage){
+					$this->context->controller->errors['PAYLIKE_TEST_SECRET_KEY'] = $validationPublicKeyMessage;
 					$valid                                                        = false;
-				} else {
+				}else{
 					$PAYLIKE_TEST_SECRET_KEY = ( ! empty( Tools::getvalue( 'PAYLIKE_TEST_SECRET_KEY' ) ) ) ? Tools::getvalue( 'PAYLIKE_TEST_SECRET_KEY' ) : '';
-					$validationPublicKeyMessage = $this->validateAppKeyField($PAYLIKE_TEST_SECRET_KEY,'test');
-					if($validationPublicKeyMessage){
-						$this->context->controller->errors['PAYLIKE_TEST_SECRET_KEY'] = $validationPublicKeyMessage;
-					}
 				}
 
-				if ( ! Tools::getvalue( 'PAYLIKE_TEST_PUBLIC_KEY' ) ) {
-					$this->context->controller->errors['PAYLIKE_TEST_PUBLIC_KEY'] = $this->l( 'Test mode Public Key required!' );
-					$PAYLIKE_TEST_PUBLIC_KEY                                      = ( ! empty( Configuration::get( 'PAYLIKE_TEST_PUBLIC_KEY' ) ) ) ? Configuration::get( 'PAYLIKE_TEST_PUBLIC_KEY' ) : '';
+				/** Load db value or set it to empty **/
+				$PAYLIKE_TEST_PUBLIC_KEY = ( ! empty( Configuration::get( 'PAYLIKE_TEST_PUBLIC_KEY' ) ) ) ? Configuration::get( 'PAYLIKE_TEST_PUBLIC_KEY' ) : '';
+				$validationAppKeyMessage = $this->validatePublicKeyField(Tools::getvalue( 'PAYLIKE_TEST_PUBLIC_KEY' ),'test');
+				if($validationAppKeyMessage){
+					$this->context->controller->errors['PAYLIKE_TEST_PUBLIC_KEY'] = $validationAppKeyMessage;
 					$valid                                                        = false;
-				} else {
+				}else{
 					$PAYLIKE_TEST_PUBLIC_KEY = ( ! empty( Tools::getvalue( 'PAYLIKE_TEST_PUBLIC_KEY' ) ) ) ? Tools::getvalue( 'PAYLIKE_TEST_PUBLIC_KEY' ) : '';
-					$validationAppKeyMessage = $this->validatePublicKeyField($PAYLIKE_TEST_PUBLIC_KEY,'test');
-					if($validationAppKeyMessage){
-						$this->context->controller->errors['PAYLIKE_TEST_PUBLIC_KEY'] = $validationAppKeyMessage;
-					}
-				}
-			} elseif ( Tools::getvalue( 'PAYLIKE_TRANSACTION_MODE' ) == 'live' ) {
-				if ( ! Tools::getvalue( 'PAYLIKE_LIVE_SECRET_KEY' ) ) {
-					$this->context->controller->errors['PAYLIKE_LIVE_SECRET_KEY'] = $this->l( 'Live mode App Key required!' );
-					$PAYLIKE_LIVE_SECRET_KEY                                      = ( ! empty( Configuration::get( 'PAYLIKE_LIVE_SECRET_KEY' ) ) ) ? Configuration::get( 'PAYLIKE_LIVE_SECRET_KEY' ) : '';
-					$valid                                                        = false;
-				} else {
-					$PAYLIKE_LIVE_SECRET_KEY = ( ! empty( Tools::getvalue( 'PAYLIKE_LIVE_SECRET_KEY' ) ) ) ? Tools::getvalue( 'PAYLIKE_LIVE_SECRET_KEY' ) : '';
-					$validationPublicKeyMessage = $this->validateAppKeyField($PAYLIKE_LIVE_SECRET_KEY,'live');
-					if($validationPublicKeyMessage){
-						$this->context->controller->errors['PAYLIKE_LIVE_SECRET_KEY'] = $validationPublicKeyMessage;
-					}
 				}
 
-				if ( ! Tools::getvalue( 'PAYLIKE_LIVE_PUBLIC_KEY' ) ) {
-					$this->context->controller->errors['PAYLIKE_LIVE_PUBLIC_KEY'] = $this->l( 'Live mode Public Key required!' );
-					$PAYLIKE_LIVE_PUBLIC_KEY                                      = ( ! empty( Configuration::get( 'PAYLIKE_LIVE_PUBLIC_KEY' ) ) ) ? Configuration::get( 'PAYLIKE_LIVE_PUBLIC_KEY' ) : '';
+			} elseif ( Tools::getvalue( 'PAYLIKE_TRANSACTION_MODE' ) == 'live' ) {
+				/** Load db value or set it to empty **/
+				$PAYLIKE_LIVE_SECRET_KEY = ( ! empty( Configuration::get( 'PAYLIKE_LIVE_SECRET_KEY' ) ) ) ? Configuration::get( 'PAYLIKE_LIVE_SECRET_KEY' ) : '';
+				$validationPublicKeyMessage = $this->validateAppKeyField(Tools::getvalue( 'PAYLIKE_LIVE_SECRET_KEY' ),'live');
+				if($validationPublicKeyMessage){
+					$this->context->controller->errors['PAYLIKE_LIVE_SECRET_KEY'] = $validationPublicKeyMessage;
 					$valid                                                        = false;
-				} else {
+				}else{
+					$PAYLIKE_LIVE_SECRET_KEY = ( ! empty( Tools::getvalue( 'PAYLIKE_LIVE_SECRET_KEY' ) ) ) ? Tools::getvalue( 'PAYLIKE_LIVE_SECRET_KEY' ) : '';
+				}
+
+				/** Load db value or set it to empty **/
+				$PAYLIKE_LIVE_PUBLIC_KEY = ( ! empty( Configuration::get( 'PAYLIKE_LIVE_PUBLIC_KEY' ) ) ) ? Configuration::get( 'PAYLIKE_LIVE_PUBLIC_KEY' ) : '';
+				$validationAppKeyMessage = $this->validatePublicKeyField(Tools::getvalue( 'PAYLIKE_LIVE_PUBLIC_KEY' ),'live');
+				if($validationAppKeyMessage){
+					$this->context->controller->errors['PAYLIKE_LIVE_PUBLIC_KEY'] = $validationAppKeyMessage;
+					$valid                                                        = false;
+				}else{
 					$PAYLIKE_LIVE_PUBLIC_KEY = ( ! empty( Tools::getvalue( 'PAYLIKE_LIVE_PUBLIC_KEY' ) ) ) ? Tools::getvalue( 'PAYLIKE_LIVE_PUBLIC_KEY' ) : '';
-					$validationAppKeyMessage = $this->validatePublicKeyField($PAYLIKE_LIVE_PUBLIC_KEY,'live');
-					if($validationAppKeyMessage){
-						$this->context->controller->errors['PAYLIKE_LIVE_PUBLIC_KEY'] = $validationAppKeyMessage;
-					}
 				}
 			}
 
@@ -267,12 +259,12 @@ class PaylikePayment extends PaymentModule {
 			Configuration::updateValue( $language_code . '_PAYLIKE_POPUP_DESC', $_PAYLIKE_POPUP_DESC );
 			Configuration::updateValue( 'PAYLIKE_TRANSACTION_MODE', Tools::getvalue( 'PAYLIKE_TRANSACTION_MODE' ) );
 			if ( Tools::getvalue( 'PAYLIKE_TRANSACTION_MODE' ) == 'test' ) {
-				Configuration::updateValue( 'PAYLIKE_TEST_PUBLIC_KEY', $PAYLIKE_TEST_PUBLIC_KEY );
 				Configuration::updateValue( 'PAYLIKE_TEST_SECRET_KEY', $PAYLIKE_TEST_SECRET_KEY );
+				Configuration::updateValue( 'PAYLIKE_TEST_PUBLIC_KEY', $PAYLIKE_TEST_PUBLIC_KEY );
 			}
 			if ( Tools::getvalue( 'PAYLIKE_TRANSACTION_MODE' ) == 'live' ) {
-				Configuration::updateValue( 'PAYLIKE_LIVE_PUBLIC_KEY', $PAYLIKE_LIVE_PUBLIC_KEY );
 				Configuration::updateValue( 'PAYLIKE_LIVE_SECRET_KEY', $PAYLIKE_LIVE_SECRET_KEY );
+				Configuration::updateValue( 'PAYLIKE_LIVE_PUBLIC_KEY', $PAYLIKE_LIVE_PUBLIC_KEY );
 			}
 			Configuration::updateValue( 'PAYLIKE_CHECKOUT_MODE', Tools::getValue( 'PAYLIKE_CHECKOUT_MODE' ) );
 			Configuration::updateValue( 'PAYLIKE_ORDER_STATUS', Tools::getValue( 'PAYLIKE_ORDER_STATUS' ) );
@@ -441,13 +433,6 @@ class PaylikePayment extends PaymentModule {
 					),
 					array(
 						'type'     => 'text',
-						'label'    => '<span data-toggle="tooltip" title="' . $this->l( 'Get it from your Paylike dashboard' ) . '">' . $this->l( 'Test mode Public Key' ) . '<i class="process-icon-help-new help-icon" aria-hidden="true"></i></span>',
-						'name'     => 'PAYLIKE_TEST_PUBLIC_KEY',
-						'class'    => 'paylike-config',
-						'required' => true
-					),
-					array(
-						'type'     => 'text',
 						'label'    => '<span data-toggle="tooltip" title="' . $this->l( 'Get it from your Paylike dashboard' ) . '">' . $this->l( 'Test mode App Key' ) . '<i class="process-icon-help-new help-icon" aria-hidden="true"></i></span>',
 						'name'     => 'PAYLIKE_TEST_SECRET_KEY',
 						'class'    => 'paylike-config',
@@ -455,8 +440,8 @@ class PaylikePayment extends PaymentModule {
 					),
 					array(
 						'type'     => 'text',
-						'label'    => '<span data-toggle="tooltip" title="' . $this->l( 'Get it from your Paylike dashboard' ) . '">' . $this->l( 'Live mode Public Key' ) . '<i class="process-icon-help-new help-icon" aria-hidden="true"></i></span>',
-						'name'     => 'PAYLIKE_LIVE_PUBLIC_KEY',
+						'label'    => '<span data-toggle="tooltip" title="' . $this->l( 'Get it from your Paylike dashboard' ) . '">' . $this->l( 'Test mode Public Key' ) . '<i class="process-icon-help-new help-icon" aria-hidden="true"></i></span>',
+						'name'     => 'PAYLIKE_TEST_PUBLIC_KEY',
 						'class'    => 'paylike-config',
 						'required' => true
 					),
@@ -464,6 +449,13 @@ class PaylikePayment extends PaymentModule {
 						'type'     => 'text',
 						'label'    => '<span data-toggle="tooltip" title="' . $this->l( 'Get it from your Paylike dashboard' ) . '">' . $this->l( 'Live mode App Key' ) . '<i class="process-icon-help-new help-icon" aria-hidden="true"></i></span>',
 						'name'     => 'PAYLIKE_LIVE_SECRET_KEY',
+						'class'    => 'paylike-config',
+						'required' => true
+					),
+					array(
+						'type'     => 'text',
+						'label'    => '<span data-toggle="tooltip" title="' . $this->l( 'Get it from your Paylike dashboard' ) . '">' . $this->l( 'Live mode Public Key' ) . '<i class="process-icon-help-new help-icon" aria-hidden="true"></i></span>',
+						'name'     => 'PAYLIKE_LIVE_PUBLIC_KEY',
 						'class'    => 'paylike-config',
 						'required' => true
 					),
@@ -576,18 +568,22 @@ class PaylikePayment extends PaymentModule {
 		}
 
 		if ( Configuration::get( 'PAYLIKE_TRANSACTION_MODE' ) == 'test' ) {
-			if ( ! Configuration::get( 'PAYLIKE_TEST_PUBLIC_KEY' ) ) {
-				$this->context->controller->errors['PAYLIKE_TEST_PUBLIC_KEY'] = $this->l( 'Test mode Public Key required!' );
+			$validationAppKeyMessage = $this->validateAppKeyField(Configuration::get( 'PAYLIKE_TEST_SECRET_KEY' ),'test');
+			if ($validationAppKeyMessage && empty($this->context->controller->errors['PAYLIKE_TEST_SECRET_KEY'])) {
+				$this->context->controller->errors['PAYLIKE_TEST_SECRET_KEY'] = $validationAppKeyMessage;
 			}
-			if ( ! Configuration::get( 'PAYLIKE_TEST_SECRET_KEY' ) ) {
-				$this->context->controller->errors['PAYLIKE_TEST_SECRET_KEY'] = $this->l( 'Test mode App Key required!' );
+			$validationPublicKeyMessage = $this->validatePublicKeyField(Configuration::get( 'PAYLIKE_TEST_PUBLIC_KEY' ),'test');
+			if ($validationPublicKeyMessage && empty($this->context->controller->errors['PAYLIKE_TEST_PUBLIC_KEY'])) {
+				$this->context->controller->errors['PAYLIKE_TEST_PUBLIC_KEY'] = $validationPublicKeyMessage;
 			}
-		} elseif ( Configuration::get( 'PAYLIKE_TRANSACTION_MODE' ) == 'live' ) {
-			if ( ! Configuration::get( 'PAYLIKE_LIVE_PUBLIC_KEY' ) ) {
-				$this->context->controller->errors['PAYLIKE_LIVE_PUBLIC_KEY'] = $this->l( 'Live mode Public Key required!' );
+		} elseif ( Configuration::get( 'PAYLIKE_TRANSACTION_MODE') == 'live' ) {
+			$validationAppKeyMessage = $this->validateAppKeyField(Configuration::get( 'PAYLIKE_LIVE_SECRET_KEY' ),'live');
+			if ($validationAppKeyMessage && empty($this->context->controller->errors['PAYLIKE_LIVE_SECRET_KEY'])) {
+				$this->context->controller->errors['PAYLIKE_LIVE_SECRET_KEY'] = $validationAppKeyMessage;
 			}
-			if ( ! Configuration::get( 'PAYLIKE_LIVE_SECRET_KEY' ) ) {
-				$this->context->controller->errors['PAYLIKE_LIVE_SECRET_KEY'] = $this->l( 'Live mode App Key required!' );
+			$validationPublicKeyMessage = $this->validatePublicKeyField(Configuration::get( 'PAYLIKE_LIVE_PUBLIC_KEY' ),'live');
+			if ($validationPublicKeyMessage && empty($this->context->controller->errors['PAYLIKE_LIVE_PUBLIC_KEY'])) {
+				$this->context->controller->errors['PAYLIKE_LIVE_PUBLIC_KEY'] = $validationPublicKeyMessage;
 			}
 		}
 		//print_r($this->context->controller->errors);
@@ -621,10 +617,10 @@ class PaylikePayment extends PaymentModule {
 	 * @return string - the error message
 	 */
 	public function validateAppKeyField( $value, $mode ) {
+		/** Check if the key value is empty **/
 		if ( ! $value ) {
-			return $value;
+			return $this->l( 'The '.$mode.' App Key required!' );
 		}
-		$error = '';
 		/** Load the client from API**/
 		$paylikeClient = new \Paylike\Paylike( $value );
 		try {
@@ -632,19 +628,18 @@ class PaylikePayment extends PaymentModule {
 			$identity = $paylikeClient->apps()->fetch();
 		} catch ( \Paylike\Exception\ApiException $exception ) {
 			PrestaShopLogger::addLog( $exception );
-			return $this->l( "The ".$mode." App Key doesn't seem to be valid");
+			return $this->l( "The ".$mode." App Key doesn't seem to be valid!");
 		}
 
 		try {
 			/** Load the merchants public keys list corresponding for current identity **/
 			$merchants = $paylikeClient->merchants()->find( $identity['id'] );
 			if ( $merchants ) {
-
 				foreach ( $merchants as $merchant ) {
-						/** Check if the key mode is the same as the transaction mode **/
-						if(($mode == 'test' && $merchant['test']) || ($mode != 'test' && !$merchant['test'])){
-							$this->validationPublicKeys[$mode][] = $merchant['key'];
-						}
+					/** Check if the key mode is the same as the transaction mode **/
+					if(($mode == 'test' && $merchant['test']) || ($mode != 'test' && !$merchant['test'])){
+						$this->validationPublicKeys[$mode][] = $merchant['key'];
+					}
 				}
 			}
 		} catch ( \Paylike\Exception\ApiException $exception ) {
@@ -654,11 +649,10 @@ class PaylikePayment extends PaymentModule {
 		/** Check if public keys array for the current mode is populated **/
 		if ( empty( $this->validationPublicKeys[$mode] ) ) {
 			/** Generate the error based on the current mode **/
-			$error = $this->l( 'The '.$mode .' App Key is not valid or set to '.array_values(array_diff(array_keys($this->validationPublicKeys), array($mode)))[0].' mode.' );
+			$error = $this->l( 'The '.$mode .' App Key is not valid or set to '.array_values(array_diff(array_keys($this->validationPublicKeys), array($mode)))[0].' mode!' );
 			PrestaShopLogger::addLog( $error );
+			return $error;
 		}
-
-		return $error;
 	}
 
 	/**
@@ -671,19 +665,16 @@ class PaylikePayment extends PaymentModule {
 	 * @throws Exception
 	 */
 	public function validatePublicKeyField($value, $mode) {
-		/** Check if the seek value is not empty **/
-		$error = '';
-		if ( $value ) {
-			/** Check if the local stored public keys array is defined **/
-			if ( !empty( $this->validationPublicKeys[$mode] ) ) {
-				/** Search the public key in the list of allowed public keys **/
-				if ( ! in_array( $value, $this->validationPublicKeys[$mode] ) ) {
-					$error = $this->l( 'The '.$mode.' Public Key doesn\'t seem to be valid' );
-					PrestaShopLogger::addLog( $error );
-				}
-			}
+		/** Check if the key value is not empty **/
+		if ( ! $value ) {
+			return $this->l( 'The '.$mode.' Public Key required!' );
 		}
-		return $error;
+		/** Check if the local stored public keys array is empty OR the key is not in public keys list **/
+		if ( empty( $this->validationPublicKeys[$mode] ) || ! in_array( $value, $this->validationPublicKeys[$mode] ) ) {
+			$error = $this->l( 'The '.$mode.' Public Key doesn\'t seem to be valid!' );
+			PrestaShopLogger::addLog( $error );
+			return $error;
+		}
 	}
 
 	public function getModalForAddMoreLogo() {
