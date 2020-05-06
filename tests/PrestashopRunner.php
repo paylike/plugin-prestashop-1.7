@@ -137,7 +137,8 @@ class PrestashopRunner extends PrestashopTestHelper {
 	private function getVersions() {
 		$this->goToPage( '', null, true );
 		$prestashop = $this->getText( '#shop_version' );
-		$this->goToPage( "index.php?controller=AdminModules", null, true );
+		$this->goToPage( "index.php?controller=AdminModules", '.btn-continue', true );
+        $this->click( ".btn-continue" );
 		$this->waitForElement( ".module-item-list" );
 		$paylike = $this->getElementData( '.module-item[data-name="Paylike"]', 'version' );
 
@@ -360,7 +361,8 @@ class PrestashopRunner extends PrestashopTestHelper {
 	 * @throws TimeOutException
 	 */
 	public function selectOrder() {
-		$this->goToPage( "/index.php?controller=AdminOrders", null, true );
+		$this->goToPage( "/index.php?controller=AdminOrders", '.btn-continue', true );
+        $this->click( ".btn-continue" );
 		$this->waitForElement( '.text-right .btn-group .icon-search-plus' );
 		$this->click( '.text-right .btn-group .icon-search-plus' );
 	}

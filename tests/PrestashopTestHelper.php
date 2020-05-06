@@ -9,6 +9,7 @@ use Facebook\WebDriver\Remote\RemoteWebElement;
 use Facebook\WebDriver\WebDriverBy;
 use Facebook\WebDriver\WebDriverExpectedCondition;
 use Facebook\WebDriver\WebDriverSelect;
+use Woocommerce\WoocommerceTestHelper;
 
 class PrestashopTestHelper {
 	// all of these require a default
@@ -83,20 +84,29 @@ class PrestashopTestHelper {
 		return $this;
 	}
 
-	/**
-	 * @param $pagePath
-	 *
-	 * @return PrestashopTestHelper
-	 * @throws NoSuchElementException
-	 * @throws TimeOutException
-	 */
-	public function waitForPage( $pagePath ) {
-		$this->wd->wait( 5, 500 )->until(
-			WebDriverExpectedCondition::urlIs( $this->helperGetUrl( $pagePath ) )
-		);
+    /**
+     * @param $pagePath
+     *
+     * @return WoocommerceTestHelper
+     * @throws \Facebook\WebDriver\Exception\NoSuchElementException
+     * @throws \Facebook\WebDriver\Exception\TimeOutException
+     */
+    public function waitForPage( $pagePath ) {
+        $url = $this->helperGetUrl( $pagePath );
+        $url = explode( '@', $url );
+        if ( count( $url ) > 1 ) {
+            $left = explode( '://', $url[0] );
+            $url = $left[0] . '://' . $url[1];
+        } else {
+            $url = $url[0];
+        }
 
-		return $this;
-	}
+        $this->wd->wait( 5, 500 )->until(
+            WebDriverExpectedCondition::urlIs( $url )
+        );
+
+        return $this;
+    }
 
 	/**
 	 * @param $selector
