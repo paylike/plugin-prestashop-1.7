@@ -18,22 +18,11 @@ class PrestashopQuickTest extends AbstractTestCase {
 
 	public $runner;
 
-	/**
-	 * @throws NoSuchElementException
-	 * @throws UnexpectedTagNameException
-	 */
-	public function testGeneralFunctions() {
-		$this->runner = new PrestashopRunner( $this );
-		$this->runner->ready( array(
-				'settings_check' => true,
-			)
-		);
-	}
-
-	/**
-	 * @throws NoSuchElementException
-	 * @throws UnexpectedTagNameException
-	 */
+    /**
+     * @throws NoSuchElementException
+     * @throws TimeOutException
+     * @throws UnexpectedTagNameException
+     */
 	public function testUsdPaymentBeforeOrderInstant() {
 		$this->runner = new PrestashopRunner( $this );
 		$this->runner->ready( array(
