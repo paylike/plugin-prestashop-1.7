@@ -47,5 +47,5 @@ fabric.properties
 .DS_Store
 .env
 .env.production
-vendor
+/vendor
 logs
