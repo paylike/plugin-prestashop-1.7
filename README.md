@@ -16,6 +16,10 @@ You can also find information about the plugin here: https://paylike.io/plugins/
 
 ## Installation
 
+Once you have installed Prestashop, follow these simple steps:
+1. Signup at [paylike.io](https://paylike.io) (it’s free)
+1. Create a live account
+1. Create an app key for your Prestashop website
 1. Log in as administrator and click "Modules" from the left menu and then upload it clicking "UPLOAD A MODULE" form the top.
 2. Click the "Configure" button when done installing. 
 3. Add the Public and App key that you can find in your Paylike account and enable the plugin and click save from the bottom.
