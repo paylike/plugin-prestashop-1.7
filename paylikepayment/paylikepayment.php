@@ -17,6 +17,8 @@ if ( ! class_exists( 'Paylike\\Client' ) ) {
 	require_once( 'api/Client.php' );
 }
 
+require_once __DIR__.'/vendor/autoload.php'; 
+
 use PrestaShop\PrestaShop\Core\Payment\PaymentOption;
 
 class PaylikePayment extends PaymentModule {
