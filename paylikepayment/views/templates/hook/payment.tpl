@@ -151,12 +151,12 @@
             }
         }
 
-        window.onload = function () {
+        document.addEventListener(“DOMContentLoaded”, function(event) {
             bindPaymentMethodsClick();
             maybeBindPaylikePopup();
             bindPaylkePopup();
             bindTermsCheck();
-        }
+        })
 
         ////////////////////////////////////////////
 
