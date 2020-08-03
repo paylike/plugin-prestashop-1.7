@@ -20,147 +20,151 @@
     </style>
     <script type="text/javascript" src="https://sdk.paylike.io/3.js"></script>
     <script>
-        var PAYLIKE_PUBLIC_KEY = "{$PAYLIKE_PUBLIC_KEY|escape:'htmlall':'UTF-8'}";
-        var paylike = Paylike(PAYLIKE_PUBLIC_KEY);
-        var shop_name = "{$shop_name|escape:'htmlall':'UTF-8'}";
-        var PS_SSL_ENABLED = "{$PS_SSL_ENABLED|escape:'htmlall':'UTF-8'}";
-        var host = "{$http_host|escape:'htmlall':'UTF-8'}";
-        var BASE_URI = "{$base_uri|escape:'htmlall':'UTF-8'}";
-        var popup_title = "{$popup_title|escape:'htmlall':'UTF-8'}";
-        var popup_description = "{$popup_description}";
-        var currency_code = "{$currency_code|escape:'htmlall':'UTF-8'}";
-        var amount = "{$amount|escape:'htmlall':'UTF-8'}";
-        var products = "{$products}"; //html variable can not be escaped;
-        products = JSON.parse(products.replace(/&quot;/g, '"'));
-        var name = "{$name|escape:'htmlall':'UTF-8'}";
-        var email = "{$email|escape:'htmlall':'UTF-8'}";
-        var telephone = "{$telephone|escape:'htmlall':'UTF-8'}";
-        var address = "{$address|escape:'htmlall':'UTF-8'}";
-        var ip = "{$ip|escape:'htmlall':'UTF-8'}";
-        var locale = "{$locale|escape:'htmlall':'UTF-8'}";
-        var platform_version = "{$platform_version|escape:'htmlall':'UTF-8'}";
-        var ecommerce = "{$ecommerce|escape:'htmlall':'UTF-8'}";
-        var module_version = "{$module_version|escape:'htmlall':'UTF-8'}";
-        var url_controller = "{$redirect_url|escape:'htmlall':'UTF-8'}";
-        var pay_text = "{l s='Pay' mod='paylikepayment' js=1}";
-        var qry_str = "{$qry_str}";
+        {literal}
+        var PayLikePayment = {
+            init: function() {
+                {/literal}
+                PayLikePayment.PAYLIKE_PUBLIC_KEY = "{$PAYLIKE_PUBLIC_KEY|escape:'htmlall':'UTF-8'}";
+                PayLikePayment.paylike = Paylike(PayLikePayment.PAYLIKE_PUBLIC_KEY);
+                PayLikePayment.shop_name = "{$shop_name|escape:'htmlall':'UTF-8'}";
+                PayLikePayment.PS_SSL_ENABLED = "{$PS_SSL_ENABLED|escape:'htmlall':'UTF-8'}";
+                PayLikePayment.host = "{$http_host|escape:'htmlall':'UTF-8'}";
+                PayLikePayment.BASE_URI = "{$base_uri|escape:'htmlall':'UTF-8'}";
+                PayLikePayment.popup_title = "{$popup_title|escape:'htmlall':'UTF-8'}";
+                PayLikePayment.popup_description = "{$popup_description}";
+                PayLikePayment.currency_code = "{$currency_code|escape:'htmlall':'UTF-8'}";
+                PayLikePayment.amount = "{$amount|escape:'htmlall':'UTF-8'}";
+                PayLikePayment.products = "{$products}"; //html variable can not be escaped;
+                PayLikePayment.products= JSON.parse(PayLikePayment.products.replace(/&quot;/g, '"'));
+                PayLikePayment.name = "{$name|escape:'htmlall':'UTF-8'}";
+                PayLikePayment.email = "{$email|escape:'htmlall':'UTF-8'}";
+                PayLikePayment.telephone = "{$telephone|escape:'htmlall':'UTF-8'}";
+                PayLikePayment.address = "{$address|escape:'htmlall':'UTF-8'}";
+                PayLikePayment.ip = "{$ip|escape:'htmlall':'UTF-8'}";
+                PayLikePayment.locale = "{$locale|escape:'htmlall':'UTF-8'}";
+                PayLikePayment.platform_version = "{$platform_version|escape:'htmlall':'UTF-8'}";
+                PayLikePayment.ecommerce = "{$ecommerce|escape:'htmlall':'UTF-8'}";
+                PayLikePayment.module_version = "{$module_version|escape:'htmlall':'UTF-8'}";
+                PayLikePayment.url_controller = "{$redirect_url|escape:'htmlall':'UTF-8'}";
+                PayLikePayment.pay_text = "{l s='Pay' mod='paylikepayment' js=1}";
+                PayLikePayment.qry_str = "{$qry_str}";
+                {literal}
 
-        console.log(products);
-
-        function pay() {
-            paylike.popup({
-                    title: popup_title,
-                    currency: currency_code,
-                    amount: amount,
-                    description: popup_description,
-                    locale: locale,
-                    custom: {
-                        products: products,
-                        customer: {
-                            name: name,
-                            email: email,
-                            phoneNo: telephone,
-                            address: address,
-                            IP: ip
-                        },
-                        platform: {
-                            name: 'Prestashop',
-                            version: platform_version
-                        },
-                        PaylikePluginVersion: module_version
-                    }
-                },
-                function (err, r) {
-                    if (typeof r !== 'undefined') {
-                        var return_url = url_controller + qry_str + 'transactionid=' + r.transaction.id;
-                        if (err) {
-                            return console.warn(err);
+                //window.onload = function () {
+                PayLikePayment.bindPaymentMethodsClick();
+                PayLikePayment.maybeBindPaylikePopup();
+                PayLikePayment.bindPaylkePopup();
+                PayLikePayment.bindTermsCheck();
+                //}
+                console.log(PayLikePayment.products);
+            },
+            pay: function() {
+                PayLikePayment.paylike.popup({
+                        title: PayLikePayment.popup_title,
+                        currency: PayLikePayment.currency_code,
+                        amount: PayLikePayment.amount,
+                        description: PayLikePayment.popup_description,
+                        locale: PayLikePayment.locale,
+                        custom: {
+                            products: PayLikePayment.products,
+                            customer: {
+                                name: PayLikePayment.name,
+                                email: PayLikePayment.email,
+                                phoneNo: PayLikePayment.telephone,
+                                address: PayLikePayment.address,
+                                IP: PayLikePayment.ip
+                            },
+                            platform: {
+                                name: 'Prestashop',
+                                version: PayLikePayment.platform_version
+                            },
+                            PaylikePluginVersion: PayLikePayment.module_version
                         }
-                        location.href = htmlDecode(return_url);
+                    },
+                    function (err, r) {
+                        if (typeof r !== 'undefined') {
+                            var return_url = PayLikePayment.url_controller + PayLikePayment.qry_str + 'transactionid=' + r.transaction.id;
+                            if (err) {
+                                return console.warn(err);
+                            }
+                            location.href = PayLikePayment.htmlDecode(return_url);
+                        }
+                    });
+                PayLikePayment.ifCheckedUncheck();
+            },
+            htmlDecode: function(url) {
+                return String(url).replace(/&amp;/g, '&');
+            },
+            ////////////////////////////////////////////
+            ifCheckedUncheck: function() {
+                $('#conditions-to-approve input[type="checkbox"]').not(this).prop('checked', false);
+            },
+            bindTermsCheck: function() {
+                $('#conditions-to-approve input[type="checkbox"]').change(function () {
+                    var $paymentConfirmation = $('#payment-confirmation');
+                    if ($(this).prop("checked") == true) {
+                        $paymentConfirmation.find("div").removeClass('disabled').addClass('active');
+                        $paymentConfirmation.find("button").removeClass('disabled').addClass('active');
+                    } else {
+                        $paymentConfirmation.find("div").removeClass('active').addClass('disabled');
+                        $paymentConfirmation.find("button").removeClass('active').addClass('disabled');
                     }
                 });
-            ifCheckedUncheck();
-        }
+            },
+            bindPaymentMethodsClick: function() {
+                var paymentMethodsAll = document.querySelectorAll('.payment-option');
+                if (!paymentMethodsAll) return false;
 
-        function htmlDecode(url) {
-            return String(url).replace(/&amp;/g, '&');
-        }
-
-
-        ////////////////////////////////////////////
-
-        function ifCheckedUncheck() {
-            $('#conditions-to-approve input[type="checkbox"]').not(this).prop('checked', false);
-
-        }
-
-        function bindTermsCheck() {
-            $('#conditions-to-approve input[type="checkbox"]').change(function () {
-                var $paymentConfirmation = $('#payment-confirmation');
-                if ($(this).prop("checked") == true) {
-                    $paymentConfirmation.find("div").removeClass('disabled').addClass('active');
-                    $paymentConfirmation.find("button").removeClass('disabled').addClass('active');
-                } else {
-                    $paymentConfirmation.find("div").removeClass('active').addClass('disabled');
-                    $paymentConfirmation.find("button").removeClass('active').addClass('disabled');
+                for (var x = 0; x < paymentMethodsAll.length; x++) {
+                    paymentMethodsAll[x].addEventListener("click", function (e) {
+                        PayLikePayment.maybeBindPaylikePopup();
+                    });
                 }
-            });
-        }
-
-        function bindPaymentMethodsClick() {
-            var paymentMethodsAll = document.querySelectorAll('.payment-option');
-            if (!paymentMethodsAll) return false;
-
-            for (var x = 0; x < paymentMethodsAll.length; x++) {
-                paymentMethodsAll[x].addEventListener("click", function (e) {
-                    maybeBindPaylikePopup();
+                //            $()
+            },
+            bindPaylkePopup: function() {
+                $('#pay-by-paylike').on('click', function (e) {
+                    e.preventDefault();
+                    //if (!$('#conditions-to-approve input[type="checkbox"]:checked').length) return false;
+                    PayLikePayment.pay();
                 });
-            }
-            $()
-        }
+            },
+            maybeBindPaylikePopup: function() {
+                var paymentMethod = document.querySelector('input[name="payment-option"]:checked');
+                if (!paymentMethod) return false;
+                var $payButton = $('#pay-by-paylike');
+                var $submitButton = $('#payment-confirmation button');
+                // uncheck terms checkbox
+                PayLikePayment.ifCheckedUncheck();
+                // if payment method is not paylike add the buttons back
+                if (paymentMethod.dataset.moduleName !== 'paylikepayment') {
+                    $submitButton.removeClass('hide-element');
+                    $payButton.addClass('hide-element');
+                } else {
+                    if (!$payButton.length) {
+                        $submitButton.after('<div ' +
+                            'style="-webkit-appearance: none; background-color: #2fb5d2;" ' +
+                            'class="btn btn-primary center-block disabled " id="pay-by-paylike">' + PayLikePayment.pay_text + '</div>');
+                        PayLikePayment.bindPaylkePopup();
+                    }
+                    $submitButton.addClass('hide-element');
+                    $payButton.removeClass('hide-element');
 
-        function bindPaylkePopup() {
-            $('#pay-by-paylike').on('click', function (e) {
-                e.preventDefault();
-                if (!$('#conditions-to-approve input[type="checkbox"]:checked').length) return false;
-                pay();
+                }
+            }
+            ////////////////////////////////////////////
+        };
+
+        if (typeof OnePageCheckoutPS !== typeof undefined) {
+            $(document).on('opc-load-review:completed', function() {
+                PayLikePayment.init();
+            });
+        } else {
+            document.addEventListener("DOMContentLoaded", function(event) {
+                PayLikePayment.init();
             });
         }
-
-        function maybeBindPaylikePopup() {
-            var paymentMethod = document.querySelector('input[name="payment-option"]:checked');
-            if (!paymentMethod) return false;
-            var $payButton = $('#pay-by-paylike');
-            var $submitButton = $('#payment-confirmation button');
-            // uncheck terms checkbox
-            ifCheckedUncheck();
-            // if payment method is not paylike add the buttons back
-            if (paymentMethod.dataset.moduleName !== 'paylikepayment') {
-                $submitButton.removeClass('hide-element');
-                $payButton.addClass('hide-element');
-            } else {
-                if (!$payButton.length) {
-                    $submitButton.after('<div ' +
-                        'style="-webkit-appearance: none; background-color: #2fb5d2;" ' +
-                        'class="btn btn-primary center-block disabled " id="pay-by-paylike">' + pay_text + '</div>');
-                    bindPaylkePopup();
-                }
-                $submitButton.addClass('hide-element');
-                $payButton.removeClass('hide-element');
-
-            }
-        }
-
-        document.addEventListener(“DOMContentLoaded”, function(event) {
-            bindPaymentMethodsClick();
-            maybeBindPaylikePopup();
-            bindPaylkePopup();
-            bindTermsCheck();
-        })
-
-        ////////////////////////////////////////////
-
-
+        {/literal}
     </script>
     {*<div class="row">
         <div class="col-xs-12">

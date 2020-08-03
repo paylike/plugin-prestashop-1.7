@@ -328,7 +328,10 @@ class PrestashopRunner extends PrestashopTestHelper {
 		$expectedAmount = $this->getText('.cart-total span.value');
 		$expectedAmount = preg_replace("/[^0-9.]/", "", $expectedAmount);
 		$expectedAmount = ceil(round($expectedAmount, 3) * get_paylike_currency_multiplier($this->currency));
-		$amount = $this->wd->executeScript("return window.amount");
+        $amount         = $this->getText('.paylike .payment .amount');
+        $amount         = preg_replace("/[^0-9.]/", "", $amount);
+        $amount         = trim($amount, '.');
+        $amount         = ceil(round($amount, 4) * get_paylike_currency_multiplier($this->currency));
 
 		$this->main_test->assertEquals($expectedAmount, $amount, "Checking minor amount for " . $this->currency);
 		$this->popupPaylike();
