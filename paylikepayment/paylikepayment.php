@@ -780,7 +780,7 @@ class PaylikePayment extends PaymentModule {
 			'currency_code'                  => $currency_code,
 			'amount'                         => $amount,
 			'id_cart'                        => Tools::jsonEncode( $params['cart']->id ),
-			'products'                       => Tools::jsonEncode( $products_array ),
+			'products'                       => str_replace("\u0022","\\\\\"",Tools::jsonEncode(  $products_array ,JSON_HEX_QUOT)),
 			'name'                           => $name,
 			'email'                          => $email,
 			'telephone'                      => $telephone,
