@@ -98,6 +98,9 @@
             ////////////////////////////////////////////
             ifCheckedUncheck: function() {
                 $('#conditions-to-approve input[type="checkbox"]').not(this).prop('checked', false);
+                var $paymentConfirmation = $('#payment-confirmation');
+                $paymentConfirmation.find("div").removeClass('active').addClass('disabled');
+                $paymentConfirmation.find("button").removeClass('active').addClass('disabled');
             },
             bindTermsCheck: function() {
                 $('#conditions-to-approve input[type="checkbox"]').change(function () {
@@ -120,12 +123,11 @@
                         PayLikePayment.maybeBindPaylikePopup();
                     });
                 }
-                //            $()
             },
             bindPaylkePopup: function() {
                 $('#pay-by-paylike').on('click', function (e) {
                     e.preventDefault();
-                    //if (!$('#conditions-to-approve input[type="checkbox"]:checked').length) return false;
+                    if (!$('#conditions-to-approve input[type="checkbox"]:checked').length) return false;
                     PayLikePayment.pay();
                 });
             },
