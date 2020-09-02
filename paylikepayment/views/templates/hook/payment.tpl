@@ -125,7 +125,7 @@
             bindPaylkePopup: function() {
                 $('#pay-by-paylike').on('click', function (e) {
                     e.preventDefault();
-                    //if (!$('#conditions-to-approve input[type="checkbox"]:checked').length) return false;
+                    if (!$('#conditions-to-approve input[type="checkbox"]:checked').length) return false;
                     PayLikePayment.pay();
                 });
             },
