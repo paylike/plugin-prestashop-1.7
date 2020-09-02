@@ -137,7 +137,8 @@ class PrestashopRunner extends PrestashopTestHelper {
 	private function getVersions() {
 		$this->goToPage( '', null, true );
 		$prestashop = $this->getText( '#shop_version' );
-		$this->goToPage( "index.php?controller=AdminModules", null, true );
+		$this->goToPage( "index.php?controller=AdminModules", '.btn-continue', true );
+        $this->click( ".btn-continue" );
 		$this->waitForElement( ".module-item-list" );
 		$paylike = $this->getElementData( '.module-item[data-name="Paylike"]', 'version' );
 
@@ -327,7 +328,10 @@ class PrestashopRunner extends PrestashopTestHelper {
 		$expectedAmount = $this->getText('.cart-total span.value');
 		$expectedAmount = preg_replace("/[^0-9.]/", "", $expectedAmount);
 		$expectedAmount = ceil(round($expectedAmount, 3) * get_paylike_currency_multiplier($this->currency));
-		$amount = $this->wd->executeScript("return window.amount");
+        $amount         = $this->getText('.paylike .payment .amount');
+        $amount         = preg_replace("/[^0-9.]/", "", $amount);
+        $amount         = trim($amount, '.');
+        $amount         = ceil(round($amount, 4) * get_paylike_currency_multiplier($this->currency));
 
 		$this->main_test->assertEquals($expectedAmount, $amount, "Checking minor amount for " . $this->currency);
 		$this->popupPaylike();
@@ -360,7 +364,8 @@ class PrestashopRunner extends PrestashopTestHelper {
 	 * @throws TimeOutException
 	 */
 	public function selectOrder() {
-		$this->goToPage( "/index.php?controller=AdminOrders", null, true );
+		$this->goToPage( "/index.php?controller=AdminOrders", '.btn-continue', true );
+        $this->click( ".btn-continue" );
 		$this->waitForElement( '.text-right .btn-group .icon-search-plus' );
 		$this->click( '.text-right .btn-group .icon-search-plus' );
 	}

@@ -1,29 +1,29 @@
 language: php
 
-dist: trusty
+dist: xenial
 
 php:
   - 7.2
-
 addons:
   chrome: stable
-
+  artifacts:
+    debug: true
+    
 env:
   global:
-    - USE_STEWARD_MASTER=1 # During Steward 3.0 development always run against latest Steward master branch
     - SELENIUM_SERVER_VERSION="3.8.1"
-    - CHROMEDRIVER_VERSION="2.36"
+    - CHROMEDRIVER_VERSION="2.40"
   matrix:
     - BROWSER=chrome
 
 install:
-  - composer install --no-interaction # Install Steward and its dependencies
-  # Currently all build are against master; reenable this after Steward 3.0 is tagged
-  #  - if [ -n "$USE_STEWARD_MASTER" ]; then composer require lmc/steward:dev-master --update-with-dependencies; fi
-  - SELENIUM_PATH=$(./vendor/bin/steward install $SELENIUM_SERVER_VERSION --no-interaction) # Download the Selenium standalone server jar file
+  - composer install --no-interaction
+  - SELENIUM_PATH=$(./vendor/bin/steward install $SELENIUM_SERVER_VERSION --no-interaction)
   - echo "Selenium server path:" $SELENIUM_PATH
-  - if [ "$BROWSER" = "chrome" ]; then mkdir chromedriver; wget -q -t 3 https://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip; unzip chromedriver_linux64 -d chromedriver; fi
-  - if [ "$BROWSER" = "chrome" ]; then export CHROMEDRIVER_PATH=./chromedriver/chromedriver; fi
+  - if [ "$BROWSER" = "chrome" ]; then mkdir chromedriver; wget -q -t 3 https://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip;
+    unzip chromedriver_linux64 -d chromedriver; fi
+  - if [ "$BROWSER" = "chrome" ]; then export CHROMEDRIVER_PATH=./chromedriver/chromedriver;
+    fi
 
 before_script:
   - java -jar $SELENIUM_PATH -role hub -enablePassThrough false -log selenium-server.log &
@@ -35,7 +35,7 @@ before_script:
   - sleep 3 # wait until browsers starts
 
 script:
-  - ./vendor/bin/steward run staging $BROWSER --group="prestashop_quick_test" -vv # Run the tests in $BROWSER and specify `staging` as an environment name˘
+  - ./vendor/bin/steward run staging $BROWSER --group="prestashop_quick_test" -vv # Run the tests in $BROWSER and specify `staging` as an environment name
 after_success:
   - ./vendor/bin/steward results -vvv
   - ./vendor/bin/steward run staging $BROWSER --group="prestashop_full_test" -vv
