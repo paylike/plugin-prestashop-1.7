@@ -4,7 +4,7 @@
  * @author    DerikonDevelopment <ionut@derikon.com>
  * @copyright Copyright (c) permanent, DerikonDevelopment
  * @license   Addons PrestaShop license limitation
- * @version   1.0.7
+ * @version   1.0.8
  * @link      http://www.derikon.com/
  *
  */
@@ -28,7 +28,7 @@ class PaylikePayment extends PaymentModule {
 	public function __construct() {
 		$this->name      = 'paylikepayment';
 		$this->tab       = 'payments_gateways';
-		$this->version   = '1.0.7';
+		$this->version   = '1.0.8';
 		$this->author    = 'DerikonDevelopment';
 		$this->bootstrap = true;
 
