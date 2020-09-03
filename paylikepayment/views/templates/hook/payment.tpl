@@ -101,6 +101,12 @@
                 var $paymentConfirmation = $('#payment-confirmation');
                 $paymentConfirmation.find("div").removeClass('active').addClass('disabled');
                 $paymentConfirmation.find("button").removeClass('active').addClass('disabled');
+                /* Integration with One Page Checkout v4.0.10 - by PresTeamShop
+                 * Disable preloader if is defined
+                 */
+                if (typeof Fronted !== 'undefined' && Fronted !== null) {
+                  Fronted.loadingBig(false);
+                }
             },
             bindTermsCheck: function() {
                 $('#conditions-to-approve input[type="checkbox"]').change(function () {
