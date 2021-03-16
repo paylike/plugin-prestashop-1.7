@@ -18,7 +18,7 @@
             height: 27px;
         }
     </style>
-    <script type="text/javascript" src="https://sdk.paylike.io/3.js"></script>
+    <script type="text/javascript" src="https://sdk.paylike.io/6.js"></script>
     <script>
         {literal}
         var PayLikePayment = {

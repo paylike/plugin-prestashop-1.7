@@ -4,7 +4,7 @@
  * @author    DerikonDevelopment <ionut@derikon.com>
  * @copyright Copyright (c) permanent, DerikonDevelopment
  * @license   Addons PrestaShop license limitation
- * @version   1.1.0
+ * @version   1.1.1
  * @link      http://www.derikon.com/
  *
  */
@@ -17,7 +17,7 @@ if ( ! class_exists( 'Paylike\\Client' ) ) {
 	require_once( 'api/Client.php' );
 }
 
-require_once __DIR__.'/vendor/autoload.php'; 
+require_once __DIR__.'/vendor/autoload.php';
 
 use PrestaShop\PrestaShop\Core\Payment\PaymentOption;
 
@@ -28,7 +28,7 @@ class PaylikePayment extends PaymentModule {
 	public function __construct() {
 		$this->name      = 'paylikepayment';
 		$this->tab       = 'payments_gateways';
-		$this->version   = '1.1.0';
+		$this->version   = '1.1.1';
 		$this->author    = 'DerikonDevelopment';
 		$this->bootstrap = true;
 
