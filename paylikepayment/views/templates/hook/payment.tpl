@@ -10,15 +10,17 @@
         .cards {
             display: inline-flex;
         }
-
+        .cards li {
+            width: 25%;
+            padding: 3px;
+        }
         .cards li img {
             vertical-align: middle;
-            margin-right: 10px;
+            max-width: 100%;
             width: 37px;
             height: 27px;
         }
     </style>
-    <script type="text/javascript" src="https://sdk.paylike.io/6.js"></script>
     <script>
         {literal}
         var PayLikePayment = {
@@ -50,46 +52,49 @@
                 PayLikePayment.qry_str = "{$qry_str}";
                 {literal}
 
-                //window.onload = function () {
-                PayLikePayment.bindPaymentMethodsClick();
-                PayLikePayment.maybeBindPaylikePopup();
-                PayLikePayment.bindPaylkePopup();
-                PayLikePayment.bindTermsCheck();
-                //}
-                console.log(PayLikePayment.products);
+                /* 
+                 * Integration with One Page Supercheckout
+                 * Skip events if One Page Supercheckout 
+                 */
+                if(typeof window.supercheckoutLayout === 'undefined'){
+                    PayLikePayment.bindPaymentMethodsClick();
+                    PayLikePayment.maybeBindPaylikePopup();
+                    PayLikePayment.bindPaylkePopup();
+                    PayLikePayment.bindTermsCheck();
+                }
             },
             pay: function() {
                 PayLikePayment.paylike.popup({
-                        title: PayLikePayment.popup_title,
-                        currency: PayLikePayment.currency_code,
-                        amount: PayLikePayment.amount,
-                        description: PayLikePayment.popup_description,
-                        locale: PayLikePayment.locale,
-                        custom: {
-                            products: PayLikePayment.products,
-                            customer: {
-                                name: PayLikePayment.name,
-                                email: PayLikePayment.email,
-                                phoneNo: PayLikePayment.telephone,
-                                address: PayLikePayment.address,
-                                IP: PayLikePayment.ip
-                            },
-                            platform: {
-                                name: 'Prestashop',
-                                version: PayLikePayment.platform_version
-                            },
-                            PaylikePluginVersion: PayLikePayment.module_version
+                    title: PayLikePayment.popup_title,
+                    currency: PayLikePayment.currency_code,
+                    amount: PayLikePayment.amount,
+                    description: PayLikePayment.popup_description,
+                    locale: PayLikePayment.locale,
+                    custom: {
+                        products: PayLikePayment.products,
+                        customer: {
+                            name: PayLikePayment.name,
+                            email: PayLikePayment.email,
+                            phoneNo: PayLikePayment.telephone,
+                            address: PayLikePayment.address,
+                            IP: PayLikePayment.ip
+                        },
+                        platform: {
+                            name: 'Prestashop',
+                            version: PayLikePayment.platform_version
+                        },
+                        PaylikePluginVersion: PayLikePayment.module_version
+                    }
+                },
+                function (err, r) {
+                    if (typeof r !== 'undefined') {
+                        var return_url = PayLikePayment.url_controller + PayLikePayment.qry_str + 'transactionid=' + r.transaction.id;
+                        if (err) {
+                            return console.warn(err);
                         }
-                    },
-                    function (err, r) {
-                        if (typeof r !== 'undefined') {
-                            var return_url = PayLikePayment.url_controller + PayLikePayment.qry_str + 'transactionid=' + r.transaction.id;
-                            if (err) {
-                                return console.warn(err);
-                            }
-                            location.href = PayLikePayment.htmlDecode(return_url);
-                        }
-                    });
+                        location.href = PayLikePayment.htmlDecode(return_url);
+                    }
+                });
                 PayLikePayment.ifCheckedUncheck();
             },
             htmlDecode: function(url) {
@@ -101,7 +106,8 @@
                 var $paymentConfirmation = $('#payment-confirmation');
                 $paymentConfirmation.find("div").removeClass('active').addClass('disabled');
                 $paymentConfirmation.find("button").removeClass('active').addClass('disabled');
-                /* Integration with One Page Checkout v4.0.10 - by PresTeamShop
+                /* 
+                 * Integration with One Page Checkout v4.0.10 - by PresTeamShop
                  * Disable preloader if is defined
                  */
                 if (typeof Fronted !== 'undefined' && Fronted !== null) {
@@ -163,13 +169,35 @@
             ////////////////////////////////////////////
         };
 
+        /* 
+         * Integration with One Page Supercheckout
+         * Init Paylike SDK
+         */
+        if (typeof window.supercheckoutLayout !== 'undefined' && typeof window.initialized === 'undefined') {
+            $.getScript('https://sdk.paylike.io/6.js',function(){
+                initialized = true;
+            });
+        }
+
+        /* 
+         * Integration with One Page Checkout v4.0.10 - by PresTeamShop
+         * Init Paylike SDK
+         */
         if (typeof OnePageCheckoutPS !== typeof undefined) {
             $(document).on('opc-load-review:completed', function() {
-                PayLikePayment.init();
+                $.getScript('https://sdk.paylike.io/6.js',function(){
+                    PayLikePayment.init();
+                });
             });
         } else {
+            /* 
+            * Default
+            * Init Paylike SDK
+            */
             document.addEventListener("DOMContentLoaded", function(event) {
-                PayLikePayment.init();
+                $.getScript('https://sdk.paylike.io/6.js',function(){
+                    PayLikePayment.init();
+                });  
             });
         }
         {/literal}
@@ -207,7 +235,7 @@
                 <input style="float:left;" id="paylike-btn" type="image" name="submit"
                        src="{$this_path_paylike}logo.png" alt=""
                        style="vertical-align: middle; margin-right: 10px; width:57px; height:57px;"/>
-                <div style="float:left; margin-left:10px;">
+                <div style="float:left; width:100%">
                     <span style="margin-right: 10px;">{l s={$payment_method_title} mod='paylikepayment'}</span>
                     <span>
                         <ul class="cards">
@@ -218,7 +246,7 @@
                             {/foreach}
                         </ul>
                     </span>
-                    <small style="font-size: 12px; display: block; font-weight: normal; letter-spacing: 1px;">{l s={$payment_method_desc} mod='paylikepayment'}</small>
+                    <small style="font-size: 12px; display: block; font-weight: normal; letter-spacing: 1px; max-width:100%;">{l s={$payment_method_desc} mod='paylikepayment'}</small>
                 </div>
             </div>
         </div>
