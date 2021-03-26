@@ -24,6 +24,24 @@ Once you have installed Prestashop, follow these simple steps:
 2. Click the "Configure" button when done installing. 
 3. Add the Public and App key that you can find in your Paylike account and enable the plugin and click save from the bottom.
 
+## One Page Supercheckout compatibility patch
+
+* Last tested on: *One Page Supercheckout v6.0.9*
+
+In order to enable compatibility feature provided by our module, please change the content of the following files as described below:
+---> File: prestashop_root/modules/supercheckout/views/js/front/supercheckout.js
+1. find line `if ($('input:radio[name="payment_method"]:checked').hasClass('binary')) {`:
+2. add the following code snippet before:
+// Start: Changes for PAYLIKE PAYMENT MODULE
+if (payment_module_name == 'paylikepayment') {
+    PayLikePayment.init();
+    PayLikePayment.pay();
+    hide_progress();
+    $("html, body").animate({scrollTop: $("#hosted-fields-form").offset().top}, "fast");
+    return;
+}
+// END: Changes for PAYLIKE PAYMENT MODULE
+
 ## Updating settings
 
 Under the extension settings, you can:
