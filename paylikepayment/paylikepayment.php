@@ -747,7 +747,7 @@ class PaylikePayment extends PaymentModule {
 		$currency            = new Currency( (int) $params['cart']->id_currency );
 		$currency_code       = $currency->iso_code;
 		$currency_multiplier = $this->getPaylikeCurrencyMultiplier( $currency->iso_code );
-		$amount              = $this->getPaylikeAmount(  $params['cart']->getOrderTotal(), $currency_multiplier );
+		$amount              = $this->getPaylikeAmount(  $params['cart']->getOrderTotal(), $currency->iso_code );
 		$customer            = new Customer( (int) $params['cart']->id_customer );
 		$name                = $customer->firstname . ' ' . $customer->lastname;
 		$email               = $customer->email;
