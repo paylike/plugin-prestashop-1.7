@@ -74,6 +74,7 @@ class PaylikePayment extends PaymentModule {
 		         && $this->registerHook( 'DisplayAdminOrder' )
 		         && $this->registerHook( 'BackOfficeHeader' )
 		         && $this->registerHook( 'actionOrderStatusPostUpdate' )
+		         && $this->registerHook( 'actionOrderSlipAdd' )
 		         && $this->installDb() );
 	}
 
@@ -881,14 +882,12 @@ class PaylikePayment extends PaymentModule {
 	public function getPaylikeAmount( $total, $currency_iso_code ) {
 		$multiplier = $this->getPaylikeCurrencyMultiplier( $currency_iso_code );
 		$amount     = ceil( $total * $multiplier ); // round to make sure we are always minor units.
-		if ( function_exists( 'bcmul' ) ) {
-			$amount = ceil( bcmul( $total, $multiplier ) );
-		}
+		// if ( function_exists( 'bcmul' ) ) {
+		// 	$amount = ceil( bcmul( $total, $multiplier ) );
+		// }
 
 		return $amount;
 	}
-
-
 
 	public function getPaylikeCurrency( $currency_iso_code ) {
 		$currencies = array(
@@ -1988,10 +1987,12 @@ class PaylikePayment extends PaymentModule {
 			$order_token        = Tools::getAdminToken( 'AdminOrders' . (int) Tab::getIdFromClassName( 'AdminOrders' ) . (int) $this->context->employee->id );
 			$payliketransaction = Db::getInstance()->getRow( 'SELECT * FROM ' . _DB_PREFIX_ . 'paylike_admin WHERE order_id = ' . (int) $id_order );
 			$this->context->smarty->assign( array(
-				'ps_version'         => _PS_VERSION_,
-				'id_order'           => $id_order,
-				'order_token'        => $order_token,
-				'payliketransaction' => $payliketransaction
+				'ps_version'          => _PS_VERSION_,
+				'id_order'            => $id_order,
+				'order_token'         => $order_token,
+				'payliketransaction'  => $payliketransaction,
+				'not_captured_text'	  => $this->l('Captured Transaction prior to Refund via Paylike.'),
+				'checkbox_text' 	  => $this->l("Refund Paylike")
 			) );
 
 			return $this->display( __FILE__, 'views/templates/hook/admin-order.tpl' );
@@ -2000,440 +2001,123 @@ class PaylikePayment extends PaymentModule {
 
 	public function dispErrors( $string = 'Fatal error', $htmlentities = true, Context $context = null ) {
 		if ( true ) {
-			return ( Tools::htmlentitiesUTF8( Tools::stripslashes( $string ) ) . '<br/>' );
+			return ( Tools::htmlentitiesUTF8( 'Paylike: ' . Tools::stripslashes( $string ) ) . '<br/>' );
 		}
 
 		return Context::getContext()->getTranslator()->trans( 'Fatal error', array(), 'Admin.Notifications.Error' );
 	}
 
+	public function hookActionOrderSlipAdd( $params ){
+		/* Check if "Refund Paylike" checkbox is checked */
+		if (Tools::isSubmit('doRefundPaylike')) {
+			$id_order = $params['order']->id;
+			$amount = 0;
+
+			/* Calculate total amount */
+			foreach ($params['productList'] as $product) {
+				$amount += floatval($product['amount']);
+			}
+
+			/* Add shipping to total */
+			if (Tools::getValue('partialRefundShippingCost')) {
+				$amount += floatval(Tools::getValue('partialRefundShippingCost'));
+			}
+
+			/* For prestashop version > 1.7.7 */
+			if  ($refundData = \Tools::getValue('cancel_product')) {
+				$shipping_amount = floatval(str_replace(',', '.', $refundData['shipping_amount']));
+				if(isset($refundData['shipping']) && $refundData['shipping']==1 && $shipping_amount == 0){
+					$shipping_amount = floatval(str_replace(',', '.', $params['order']->total_shipping));
+				}
+				$amount += $shipping_amount;
+			}
+
+			/* Init Paylike action */
+			$response = $this->doPaylikeAction($id_order,"refund",false,$amount);
+			PrestaShopLogger::addLog( $response['message'] );
+
+			/* Add response to cookies  */
+			if(isset($response['error']) && $response['error'] == '1'){
+				$this->context->cookie->__set('response_error', $response['message']);
+				$this->context->cookie->write();
+			}elseif(isset($response['warning']) && $response['warning'] == '1'){
+				$this->context->cookie->__set('response_warnings', $response['message']);
+				$this->context->cookie->write();
+			}else{
+				$this->context->cookie->__set('response_confirmations', $response['message']);
+				$this->context->cookie->write();
+			}
+		}
+	}
+
 	public function hookActionOrderStatusPostUpdate( $params ) {
 		$order_state = $params['newOrderStatus'];
 		$id_order    = $params['id_order'];
-		$order       = new Order( $id_order );
-		$customer    = new Customer( $order->id_customer );
 
-		if ( $order_state->id == (int) Configuration::get( 'PAYLIKE_ORDER_STATUS' ) ) {
-			$payliketransaction = Db::getInstance()->getRow( 'SELECT * FROM ' . _DB_PREFIX_ . 'paylike_admin WHERE order_id = ' . (int) $id_order );
-			$transactionid      = $payliketransaction['paylike_tid'];
-			Paylike\Client::setKey( Configuration::get( 'PAYLIKE_SECRET_KEY' ) );
-			$fetch = Paylike\Transaction::fetch( $transactionid );
-			if ( isset( $payliketransaction ) && $payliketransaction['captured'] != 'YES' ) {
-				$amount   = ( ! empty( $fetch['transaction']['pendingAmount'] ) ) ? (int) $fetch['transaction']['pendingAmount'] : 0;
-				$currency = new Currency( (int) $order->id_currency );
-				if ( $amount ) {
-					//Capture transaction
-					$data    = array(
-						'currency'   => $currency->iso_code,
-						'amount'     => $amount,
-					);
-					$capture = Paylike\Transaction::capture( $transactionid, $data );
+		/* Skip if no Paylike transaction */
+		$payliketransaction = Db::getInstance()->getRow( 'SELECT * FROM ' . _DB_PREFIX_ . 'paylike_admin WHERE order_id = ' . (int) $id_order );
+		if ( empty( $payliketransaction ) ) {
+			return false;
+		}
+	
+		/* If Capture or Void */
+		if ( $order_state->id == (int) Configuration::get( 'PAYLIKE_ORDER_STATUS' ) || $order_state->id == (int) Configuration::get( 'PS_OS_CANCELED' ) ) {
+			/* If custom Captured status  */
+			if ( $order_state->id == (int) Configuration::get( 'PAYLIKE_ORDER_STATUS' ) ) {
+				$response = $this->doPaylikeAction($id_order,"capture");
+			}
+			
+			/* If Canceled status */
+			if ( $order_state->id == (int) Configuration::get( 'PS_OS_CANCELED' ) ) {
+				$response = $this->doPaylikeAction($id_order,"void");	
+			}
+			
+			/* Log response */
+			PrestaShopLogger::addLog( $response['message'] );
 
-					if ( is_array( $capture ) && ! empty( $capture['error'] ) && $capture['error'] == 1 ) {
-						PrestaShopLogger::addLog( $capture['message'] );
-					} else {
-						if ( ! empty( $capture['transaction'] ) ) {
-
-							//Update transaction details
-							$fields = array(
-								'captured' => 'YES',
-							);
-							$this->updateTransactionID( $transactionid, (int) $id_order, $fields );
-
-							$currency_multiplier = $this->getPaylikeCurrencyMultiplier( $currency->iso_code );
-							//Set message
-							$message = 'Trx ID: ' . $transactionid . '
-                            Authorized Amount: ' . ( $capture['transaction']['amount'] / $currency_multiplier ) . '
-                            Captured Amount: ' . ( $capture['transaction']['capturedAmount'] / $currency_multiplier ) . '
-                            Order time: ' . $capture['transaction']['created'] . '
-                            Currency code: ' . $capture['transaction']['currency'];
-
-							$message = strip_tags( $message, '<br>' );
-							if ( Validate::isCleanHtml( $message ) ) {
-								if ( $this->getPSV() == '1.7.2' ) {
-									$id_customer_thread = CustomerThread::getIdCustomerThreadByEmailAndIdOrder( $customer->email, $order->id );
-									if ( ! $id_customer_thread ) {
-										$customer_thread              = new CustomerThread();
-										$customer_thread->id_contact  = 0;
-										$customer_thread->id_customer = (int) $order->id_customer;
-										$customer_thread->id_shop     = (int) $this->context->shop->id;
-										$customer_thread->id_order    = (int) $order->id;
-										$customer_thread->id_lang     = (int) $this->context->language->id;
-										$customer_thread->email       = $customer->email;
-										$customer_thread->status      = 'open';
-										$customer_thread->token       = Tools::passwdGen( 12 );
-										$customer_thread->add();
-									} else {
-										$customer_thread = new CustomerThread( (int) $id_customer_thread );
-									}
-
-									$customer_message                     = new CustomerMessage();
-									$customer_message->id_customer_thread = $customer_thread->id;
-									$customer_message->id_employee        = 0;
-									$customer_message->message            = $message;
-									$customer_message->private            = 1;
-
-									$customer_message->add();
-								} else {
-									$msg              = new Message();
-									$msg->message     = $message;
-									$msg->id_cart     = (int) $order->id_cart;
-									$msg->id_customer = (int) $order->id_customer;
-									$msg->id_order    = (int) $order->id;
-									$msg->private     = 1;
-									$msg->add();
-								}
-							}
-						}
-					}
-				}
+			/* Add response to cookies  */
+			if(isset($response['error']) && $response['error'] == '1'){
+				$this->context->cookie->__set('response_error', $response['message']);
+				$this->context->cookie->write();
+			}elseif(isset($response['warning']) && $response['warning'] == '1'){
+				$this->context->cookie->__set('response_warnings', $response['message']);
+				$this->context->cookie->write();
+			}else{
+				$this->context->cookie->__set('response_confirmations', $response['message']);
+				$this->context->cookie->write();
 			}
 		}
 	}
 
 	public function hookBackOfficeHeader() {
-		if ( Tools::getIsset( 'vieworder' ) && Tools::getIsset( 'id_order' ) && Tools::getIsset( 'paylike_action' ) ) {
-			$paylike_action     = Tools::getValue( 'paylike_action' );
-			$id_order           = (int) Tools::getValue( 'id_order' );
-			$order              = new Order( (int) $id_order );
-			$payliketransaction = Db::getInstance()->getRow( 'SELECT * FROM ' . _DB_PREFIX_ . 'paylike_admin WHERE order_id = ' . (int) $id_order );
-			$transactionid      = $payliketransaction['paylike_tid'];
-			Paylike\Client::setKey( Configuration::get( 'PAYLIKE_SECRET_KEY' ) );
-			$fetch    = Paylike\Transaction::fetch( $transactionid );
-			$customer = new Customer( $order->id_customer );
-
-			switch ( $paylike_action ) {
-				case "capture":
-					if ( $payliketransaction['captured'] == 'YES' ) {
-						$response = array(
-							'warning' => 1,
-							'message' => $this->dispErrors( 'Transaction already Captured.' ),
-						);
-					} elseif ( isset( $payliketransaction ) ) {
-						$amount   = ( ! empty( $fetch['transaction']['pendingAmount'] ) ) ? (int) $fetch['transaction']['pendingAmount'] : 0;
-						$currency = new Currency( (int) $order->id_currency );
-						if ( $amount ) {
-							//Capture transaction
-							$data    = array(
-								'currency'   => $currency->iso_code,
-								'amount'     => $amount,
-							);
-							$capture = Paylike\Transaction::capture( $transactionid, $data );
-
-							if ( is_array( $capture ) && ! empty( $capture['error'] ) && $capture['error'] == 1 ) {
-								PrestaShopLogger::addLog( $capture['message'] );
-								$response = array(
-									'error'   => 1,
-									'message' => $this->dispErrors( $capture['message'] ),
-								);
-							} else {
-								if ( ! empty( $capture['transaction'] ) ) {
-									//Update order status
-									$order->setCurrentState( (int) Configuration::get( 'PAYLIKE_ORDER_STATUS' ), $this->context->employee->id );
-
-									//Update transaction details
-									$fields = array(
-										'captured' => 'YES',
-									);
-									$this->updateTransactionID( $transactionid, (int) $id_order, $fields );
-
-									$currency_multiplier = $this->getPaylikeCurrencyMultiplier( $currency->iso_code );
-									//Set message
-									$message = 'Trx ID: ' . $transactionid . '
-                                    Authorized Amount: ' . ( $capture['transaction']['amount'] / $currency_multiplier ) . '
-                                    Captured Amount: ' . ( $capture['transaction']['capturedAmount'] / $currency_multiplier ) . '
-                                    Order time: ' . $capture['transaction']['created'] . '
-                                    Currency code: ' . $capture['transaction']['currency'];
-
-									$message = strip_tags( $message, '<br>' );
-									if ( Validate::isCleanHtml( $message ) ) {
-										if ( $this->getPSV() == '1.7.2' ) {
-											$id_customer_thread = CustomerThread::getIdCustomerThreadByEmailAndIdOrder( $customer->email, $order->id );
-											if ( ! $id_customer_thread ) {
-												$customer_thread              = new CustomerThread();
-												$customer_thread->id_contact  = 0;
-												$customer_thread->id_customer = (int) $order->id_customer;
-												$customer_thread->id_shop     = (int) $this->context->shop->id;
-												$customer_thread->id_order    = (int) $order->id;
-												$customer_thread->id_lang     = (int) $this->context->language->id;
-												$customer_thread->email       = $customer->email;
-												$customer_thread->status      = 'open';
-												$customer_thread->token       = Tools::passwdGen( 12 );
-												$customer_thread->add();
-											} else {
-												$customer_thread = new CustomerThread( (int) $id_customer_thread );
-											}
-
-											$customer_message                     = new CustomerMessage();
-											$customer_message->id_customer_thread = $customer_thread->id;
-											$customer_message->id_employee        = 0;
-											$customer_message->message            = $message;
-											$customer_message->private            = 1;
-
-											$customer_message->add();
-										} else {
-											$msg              = new Message();
-											$msg->message     = $message;
-											$msg->id_cart     = (int) $order->id_cart;
-											$msg->id_customer = (int) $order->id_customer;
-											$msg->id_order    = (int) $order->id;
-											$msg->private     = 1;
-											$msg->add();
-										}
-									}
-
-									//Set response
-									$response = array(
-										'success' => 1,
-										'message' => $this->dispErrors( 'Transaction successfully Captured.' ),
-									);
-								} else {
-									if ( ! empty( $capture[0]['message'] ) ) {
-										$response = array(
-											'warning' => 1,
-											'message' => $this->dispErrors( $capture[0]['message'] ),
-										);
-									} else {
-										$response = array(
-											'error'   => 1,
-											'message' => $this->dispErrors( 'Opps! An error occured while Capture.' ),
-										);
-									}
-								}
-							}
-						} else {
-							$response = array(
-								'error'   => 1,
-								'message' => $this->dispErrors( 'Invalid amount to Capture.' ),
-							);
-						}
-					} else {
-						$response = array(
-							'error'   => 1,
-							'message' => $this->dispErrors( 'Invalid Paylike Transaction.' ),
-						);
-					}
-
-					break;
-
-				case "refund":
-					if ( $payliketransaction['captured'] == 'NO' ) {
-						$response = array(
-							'warning' => 1,
-							'message' => $this->dispErrors( 'You need to Captured Transaction prior to Refund.' ),
-						);
-					} elseif ( isset( $payliketransaction ) ) {
-						$paylike_amount_to_refund = Tools::getValue( 'paylike_amount_to_refund' );
-
-						$currency = new Currency( (int) $order->id_currency );
-
-						if ( ! Validate::isPrice( $paylike_amount_to_refund ) ) {
-							$response = array(
-								'error'   => 1,
-								'message' => $this->dispErrors( 'Invalid amount to Refund.' ),
-							);
-						} else {
-							//Refund transaction
-							$amount              = $this->getPaylikeAmount($paylike_amount_to_refund, $currency->iso_code);
-							$data                = array(
-								'descriptor' => '',
-								'amount'     => $amount,
-							);
-							$refund              = Paylike\Transaction::refund( $transactionid, $data );
-
-							if ( is_array( $refund ) && ! empty( $refund['error'] ) && $refund['error'] == 1 ) {
-								PrestaShopLogger::addLog( $refund['message'] );
-								$response = array(
-									'error'   => 1,
-									'message' => $this->dispErrors( $refund['message'] ),
-								);
-							} else {
-								if ( ! empty( $refund['transaction'] ) ) {
-									//Update order status
-									$order->setCurrentState( (int) Configuration::get( 'PS_OS_REFUND' ), $this->context->employee->id );
-
-									//Update transaction details
-									$fields = array(
-										'refunded_amount' => $payliketransaction['refunded_amount'] + $paylike_amount_to_refund,
-									);
-									$this->updateTransactionID( $transactionid, (int) $id_order, $fields );
-
-									$currency_multiplier = $this->getPaylikeCurrencyMultiplier( $currency->iso_code );
-									//Set message
-									$message = 'Trx ID: ' . $transactionid . '
-                                        Authorized Amount: ' . ( $refund['transaction']['amount'] / $currency_multiplier ) . '
-                                        Refunded Amount: ' . ( $refund['transaction']['refundedAmount'] / $currency_multiplier ) . '
-                                        Order time: ' . $refund['transaction']['created'] . '
-                                        Currency code: ' . $refund['transaction']['currency'];
-
-									$message = strip_tags( $message, '<br>' );
-									if ( Validate::isCleanHtml( $message ) ) {
-										if ( $this->getPSV() == '1.7.2' ) {
-											$id_customer_thread = CustomerThread::getIdCustomerThreadByEmailAndIdOrder( $customer->email, $order->id );
-											if ( ! $id_customer_thread ) {
-												$customer_thread              = new CustomerThread();
-												$customer_thread->id_contact  = 0;
-												$customer_thread->id_customer = (int) $order->id_customer;
-												$customer_thread->id_shop     = (int) $this->context->shop->id;
-												$customer_thread->id_order    = (int) $order->id;
-												$customer_thread->id_lang     = (int) $this->context->language->id;
-												$customer_thread->email       = $customer->email;
-												$customer_thread->status      = 'open';
-												$customer_thread->token       = Tools::passwdGen( 12 );
-												$customer_thread->add();
-											} else {
-												$customer_thread = new CustomerThread( (int) $id_customer_thread );
-											}
-
-											$customer_message                     = new CustomerMessage();
-											$customer_message->id_customer_thread = $customer_thread->id;
-											$customer_message->id_employee        = 0;
-											$customer_message->message            = $message;
-											$customer_message->private            = 1;
-
-											$customer_message->add();
-										} else {
-											$msg              = new Message();
-											$msg->message     = $message;
-											$msg->id_cart     = (int) $order->id_cart;
-											$msg->id_customer = (int) $order->id_customer;
-											$msg->id_order    = (int) $order->id;
-											$msg->private     = 1;
-											$msg->add();
-										}
-									}
-
-									//Set response
-									$response = array(
-										'success' => 1,
-										'message' => $this->dispErrors( 'Transaction successfully Refunded.' ),
-									);
-								} else {
-									if ( ! empty( $refund[0]['message'] ) ) {
-										$response = array(
-											'warning' => 1,
-											'message' => $this->dispErrors( $refund[0]['message'] ),
-										);
-									} else {
-										$response = array(
-											'error'   => 1,
-											'message' => $this->dispErrors( 'Opps! An error occured while Refund.' ),
-										);
-									}
-								}
-							}
-						}
-					} else {
-						$response = array(
-							'error'   => 1,
-							'message' => $this->dispErrors( 'Invalid Paylike Transaction.' ),
-						);
-					}
-
-					break;
-
-				case "void":
-					if ( $payliketransaction['captured'] == 'YES' ) {
-						$response = array(
-							'warning' => 1,
-							'message' => $this->dispErrors( 'You can\'t Void transaction now . It\'s already Captured, try to Refund.' ),
-						);
-					} elseif ( isset( $payliketransaction ) ) {
-						$currency = new Currency( (int) $order->id_currency );
-						//Void transaction
-						$amount = (int) $fetch['transaction']['amount'] - $fetch['transaction']['refundedAmount'];
-						$data   = array(
-							'amount' => $amount,
-						);
-						$void   = Paylike\Transaction::void( $transactionid, $data );
-
-						if ( is_array( $void ) && ! empty( $void['error'] ) && $void['error'] == 1 ) {
-							PrestaShopLogger::addLog( $void['message'] );
-							$response = array(
-								'error'   => 1,
-								'message' => $this->dispErrors( $void['message'] ),
-							);
-						} else {
-							if ( ! empty( $void['transaction'] ) ) {
-								//Update order status
-								$order->setCurrentState( (int) Configuration::get( 'PS_OS_CANCEL' ), $this->context->employee->id );
-								$currency_multiplier = $this->getPaylikeCurrencyMultiplier( $currency->iso_code );
-								//Set message
-								$message = 'Trx ID: ' . $transactionid . '
-                                        Authorized Amount: ' . ( $void['transaction']['amount'] / $currency_multiplier ) . '
-                                        Refunded Amount: ' . ( $void['transaction']['refundedAmount'] / $currency_multiplier ) . '
-                                        Order time: ' . $void['transaction']['created'] . '
-                                        Currency code: ' . $void['transaction']['currency'];
-
-								$message = strip_tags( $message, '<br>' );
-								if ( Validate::isCleanHtml( $message ) ) {
-									if ( $this->getPSV() == '1.7.2' ) {
-										$id_customer_thread = CustomerThread::getIdCustomerThreadByEmailAndIdOrder( $customer->email, $order->id );
-										if ( ! $id_customer_thread ) {
-											$customer_thread              = new CustomerThread();
-											$customer_thread->id_contact  = 0;
-											$customer_thread->id_customer = (int) $order->id_customer;
-											$customer_thread->id_shop     = (int) $this->context->shop->id;
-											$customer_thread->id_order    = (int) $order->id;
-											$customer_thread->id_lang     = (int) $this->context->language->id;
-											$customer_thread->email       = $customer->email;
-											$customer_thread->status      = 'open';
-											$customer_thread->token       = Tools::passwdGen( 12 );
-											$customer_thread->add();
-										} else {
-											$customer_thread = new CustomerThread( (int) $id_customer_thread );
-										}
-
-										$customer_message                     = new CustomerMessage();
-										$customer_message->id_customer_thread = $customer_thread->id;
-										$customer_message->id_employee        = 0;
-										$customer_message->message            = $message;
-										$customer_message->private            = 1;
-
-										$customer_message->add();
-									} else {
-										$msg              = new Message();
-										$msg->message     = $message;
-										$msg->id_cart     = (int) $order->id_cart;
-										$msg->id_customer = (int) $order->id_customer;
-										$msg->id_order    = (int) $order->id;
-										$msg->private     = 1;
-										$msg->add();
-									}
-								}
-
-								//Set response
-								$response = array(
-									'success' => 1,
-									'message' => $this->dispErrors( 'Transaction successfully Voided.' ),
-								);
-							} else {
-								if ( ! empty( $void[0]['message'] ) ) {
-									$response = array(
-										'warning' => 1,
-										'message' => $this->dispErrors( $void[0]['message'] ),
-									);
-								} else {
-									$response = array(
-										'error'   => 1,
-										'message' => $this->dispErrors( 'Opps! An error occured while refund.' ),
-									);
-								}
-							}
-						}
-					} else {
-						$response = array(
-							'error'   => 1,
-							'message' => $this->dispErrors( 'Invalid paylike transaction.' ),
-						);
-					}
-
-					break;
-			}
-
-			die( Tools::jsonEncode( $response ) );
+		if ($this->context->cookie->__isset('response_error')) {
+			/** Display persistent */
+			$this->context->controller->errors[] = '<p>'.$this->context->cookie->__get('response_error').'</p>';
+			/** Clean persistent error */
+			$this->context->cookie->__unset('response_error');
 		}
 
+		if ($this->context->cookie->__isset('response_warnings')) {
+			/** Display persistent */
+			$this->context->controller->warnings[] = '<p>'.$this->context->cookie->__get('response_warnings').'</p>';
+			/** Clean persistent */
+			$this->context->cookie->__unset('response_warnings');
+		}
 
+		if ($this->context->cookie->__isset('response_confirmations')) {
+			/** Display persistent */
+			$this->context->controller->confirmations[] = '<p>'.$this->context->cookie->__get('response_confirmations').'</p>';
+			/** Clean persistent */
+			$this->context->cookie->__unset('response_confirmations');
+		}
+
+		if ( Tools::getIsset( 'vieworder' ) && Tools::getIsset( 'id_order' ) && Tools::getIsset( 'paylike_action' ) ) {
+			$paylike_action = Tools::getValue( 'paylike_action' );
+			$id_order = (int) Tools::getValue( 'id_order' );
+			$response = $this->doPaylikeAction($id_order,$paylike_action,true,Tools::getValue( 'paylike_amount_to_refund' ));
+			die( Tools::jsonEncode( $response ) );
+		}
+		
 		if ( Tools::getIsset( 'upload_logo' ) ) {
 			$logo_name = Tools::getValue( 'logo_name' );
 
@@ -2540,5 +2224,359 @@ class PaylikePayment extends PaymentModule {
 		if ( Tools::getValue( 'configure' ) == $this->name ) {
 			$this->context->controller->addCSS( $this->_path . 'views/css/backoffice.css' );
 		}
+	}
+
+	/**
+	 * Call action via Paylike API.
+	 *
+	 * @param string $id_order - the order id
+	 * @param string $paylike_action - the action to be called.
+	 * @param boolean $change_status - change status flag, default false.
+	 * @param float $paylike_amount_to_refund - the refund amount, default 0.
+	 *
+	 * @return mixed
+	 */
+	 protected function doPaylikeAction($id_order, $paylike_action, $change_status = false, $paylike_amount_to_refund = 0){
+		$order              = new Order( (int) $id_order );
+		$payliketransaction = Db::getInstance()->getRow( 'SELECT * FROM ' . _DB_PREFIX_ . 'paylike_admin WHERE order_id = ' . (int) $id_order );
+		$transactionid      = $payliketransaction['paylike_tid'];
+		Paylike\Client::setKey( Configuration::get( 'PAYLIKE_SECRET_KEY' ) );
+		$fetch    			= Paylike\Transaction::fetch( $transactionid );
+		$customer 			= new Customer( $order->id_customer );
+
+		switch ( $paylike_action ) {
+			case "capture":
+				if ( $payliketransaction['captured'] == 'YES' ) {
+					$response = array(
+						'warning' => 1,
+						'message' => $this->dispErrors( $this->l('Transaction already Captured.') ),
+					);
+				} elseif ( isset( $payliketransaction ) ) {
+					$amount   = ( ! empty( $fetch['transaction']['pendingAmount'] ) ) ? (int) $fetch['transaction']['pendingAmount'] : 0;
+					$currency = new Currency( (int) $order->id_currency );
+					if ( $amount ) {
+						/* Capture transaction */
+						$data    = array(
+							'currency'   => $currency->iso_code,
+							'amount'     => $amount,
+						);
+						$capture = Paylike\Transaction::capture( $transactionid, $data );
+
+						if ( is_array( $capture ) && ! empty( $capture['error'] ) && $capture['error'] == 1 ) {
+							PrestaShopLogger::addLog( $capture['message'] );
+							$response = array(
+								'error'   => 1,
+								'message' => $this->dispErrors( $capture['message'] ),
+							);
+						} else {
+							if ( ! empty( $capture['transaction'] ) ) {
+								//Update order status
+								if($change_status){
+									$order->setCurrentState( (int) Configuration::get( 'PAYLIKE_ORDER_STATUS' ), $this->context->employee->id );
+								}
+
+								/* Update transaction details */
+								$fields = array(
+									'captured' => 'YES',
+								);
+								$this->updateTransactionID( $transactionid, (int) $id_order, $fields );
+
+								$currency_multiplier = $this->getPaylikeCurrencyMultiplier( $currency->iso_code );
+								/* Set message */
+								$message = 'Trx ID: ' . $transactionid . '
+								Authorized Amount: ' . ( $capture['transaction']['amount'] / $currency_multiplier ) . '
+								Captured Amount: ' . ( $capture['transaction']['capturedAmount'] / $currency_multiplier ) . '
+								Order time: ' . $capture['transaction']['created'] . '
+								Currency code: ' . $capture['transaction']['currency'];
+
+								$message = strip_tags( $message, '<br>' );
+								if ( Validate::isCleanHtml( $message ) ) {
+									if ( $this->getPSV() == '1.7.2' ) {
+										$id_customer_thread = CustomerThread::getIdCustomerThreadByEmailAndIdOrder( $customer->email, $order->id );
+										if ( ! $id_customer_thread ) {
+											$customer_thread              = new CustomerThread();
+											$customer_thread->id_contact  = 0;
+											$customer_thread->id_customer = (int) $order->id_customer;
+											$customer_thread->id_shop     = (int) $this->context->shop->id;
+											$customer_thread->id_order    = (int) $order->id;
+											$customer_thread->id_lang     = (int) $this->context->language->id;
+											$customer_thread->email       = $customer->email;
+											$customer_thread->status      = 'open';
+											$customer_thread->token       = Tools::passwdGen( 12 );
+											$customer_thread->add();
+										} else {
+											$customer_thread = new CustomerThread( (int) $id_customer_thread );
+										}
+
+										$customer_message                     = new CustomerMessage();
+										$customer_message->id_customer_thread = $customer_thread->id;
+										$customer_message->id_employee        = 0;
+										$customer_message->message            = $message;
+										$customer_message->private            = 1;
+
+										$customer_message->add();
+									} else {
+										$msg              = new Message();
+										$msg->message     = $message;
+										$msg->id_cart     = (int) $order->id_cart;
+										$msg->id_customer = (int) $order->id_customer;
+										$msg->id_order    = (int) $order->id;
+										$msg->private     = 1;
+										$msg->add();
+									}
+								}
+
+								/* Set response */
+								$response = array(
+									'success' => 1,
+									'message' => $this->dispErrors( $this->l('Transaction successfully Captured.') ),
+								);
+							} else {
+								if ( ! empty( $capture[0]['message'] ) ) {
+									$response = array(
+										'warning' => 1,
+										'message' => $this->dispErrors( $capture[0]['message'] ),
+									);
+								} else {
+									$response = array(
+										'error'   => 1,
+										'message' => $this->dispErrors( $this->l('Opps! An error occured while Capture.') ),
+									);
+								}
+							}
+						}
+					} else {
+						$response = array(
+							'error'   => 1,
+							'message' => $this->dispErrors( $this->l('Invalid amount to Capture.') ),
+						);
+					}
+				} else {
+					$response = array(
+						'error'   => 1,
+						'message' => $this->dispErrors( $this->l('Invalid Paylike Transaction.') ),
+					);
+				}
+
+				break;
+
+			case "refund":
+				if ( $payliketransaction['captured'] == 'NO' ) {
+					$response = array(
+						'warning' => 1,
+						'message' => $this->dispErrors( $this->l('You need to Captured Transaction prior to Refund.') ),
+					);
+				} elseif ( isset( $payliketransaction ) ) {
+
+					$currency = new Currency( (int) $order->id_currency );
+
+					if ( ! Validate::isPrice( $paylike_amount_to_refund ) ) {
+						$response = array(
+							'error'   => 1,
+							'message' => $this->dispErrors( $this->l('Invalid amount to Refund.') ),
+						);
+					} else {
+						/* Refund transaction */
+						$amount              = $this->getPaylikeAmount($paylike_amount_to_refund, $currency->iso_code);
+						$data                = array(
+							'descriptor' => '',
+							'amount'     => $amount,
+						);
+
+						$refund              = Paylike\Transaction::refund( $transactionid, $data );
+
+						if ( is_array( $refund ) && ! empty( $refund['error'] ) && $refund['error'] == 1 ) {
+							PrestaShopLogger::addLog( $refund['message'] );
+							$response = array(
+								'error'   => 1,
+								'message' => $this->dispErrors( $refund['message'] ),
+							);
+						} else {
+							if ( ! empty( $refund['transaction'] ) ) {
+								//Update order status
+								if($change_status){
+									$order->setCurrentState( (int) Configuration::get( 'PS_OS_REFUND' ), $this->context->employee->id );
+								}
+								
+								/* Update transaction details */
+								$fields = array(
+									'refunded_amount' => $payliketransaction['refunded_amount'] + $paylike_amount_to_refund,
+								);
+								$this->updateTransactionID( $transactionid, (int) $id_order, $fields );
+
+								$currency_multiplier = $this->getPaylikeCurrencyMultiplier( $currency->iso_code );
+								/* Set message */
+								$message = 'Trx ID: ' . $transactionid . '
+									Authorized Amount: ' . ( $refund['transaction']['amount'] / $currency_multiplier ) . '
+									Refunded Amount: ' . ( $refund['transaction']['refundedAmount'] / $currency_multiplier ) . '
+									Order time: ' . $refund['transaction']['created'] . '
+									Currency code: ' . $refund['transaction']['currency'];
+
+								$message = strip_tags( $message, '<br>' );
+								if ( Validate::isCleanHtml( $message ) ) {
+									if ( $this->getPSV() == '1.7.2' ) {
+										$id_customer_thread = CustomerThread::getIdCustomerThreadByEmailAndIdOrder( $customer->email, $order->id );
+										if ( ! $id_customer_thread ) {
+											$customer_thread              = new CustomerThread();
+											$customer_thread->id_contact  = 0;
+											$customer_thread->id_customer = (int) $order->id_customer;
+											$customer_thread->id_shop     = (int) $this->context->shop->id;
+											$customer_thread->id_order    = (int) $order->id;
+											$customer_thread->id_lang     = (int) $this->context->language->id;
+											$customer_thread->email       = $customer->email;
+											$customer_thread->status      = 'open';
+											$customer_thread->token       = Tools::passwdGen( 12 );
+											$customer_thread->add();
+										} else {
+											$customer_thread = new CustomerThread( (int) $id_customer_thread );
+										}
+
+										$customer_message                     = new CustomerMessage();
+										$customer_message->id_customer_thread = $customer_thread->id;
+										$customer_message->id_employee        = 0;
+										$customer_message->message            = $message;
+										$customer_message->private            = 1;
+
+										$customer_message->add();
+									} else {
+										$msg              = new Message();
+										$msg->message     = $message;
+										$msg->id_cart     = (int) $order->id_cart;
+										$msg->id_customer = (int) $order->id_customer;
+										$msg->id_order    = (int) $order->id;
+										$msg->private     = 1;
+										$msg->add();
+									}
+								}
+
+								/* Set response */
+								$response = array(
+									'success' => 1,
+									'message' => $this->dispErrors( $this->l('Transaction successfully Refunded.') ),
+								);
+							} else {
+								if ( ! empty( $refund[0]['message'] ) ) {
+									$response = array(
+										'warning' => 1,
+										'message' => $this->dispErrors( $refund[0]['message'] ),
+									);
+								} else {
+									$response = array(
+										'error'   => 1,
+										'message' => $this->dispErrors( $this->l('Opps! An error occured while Refund.') ),
+									);
+								}
+							}
+						}
+					}
+				} else {
+					$response = array(
+						'error'   => 1,
+						'message' => $this->dispErrors( $this->l('Invalid Paylike Transaction.') ),
+					);
+				}
+
+				break;
+
+			case "void":
+				if ( $payliketransaction['captured'] == 'YES' ) {
+					$response = array(
+						'warning' => 1,
+						'message' => $this->dispErrors( $this->l('You can\'t Void transaction now . It\'s already Captured, try to Refund.') ),
+					);
+				} elseif ( isset( $payliketransaction ) ) {
+					$currency = new Currency( (int) $order->id_currency );
+					/* Void transaction */
+					$amount = (int) $fetch['transaction']['amount'] - $fetch['transaction']['refundedAmount'];
+					$data   = array(
+						'amount' => $amount,
+					);
+					$void   = Paylike\Transaction::void( $transactionid, $data );
+
+					if ( is_array( $void ) && ! empty( $void['error'] ) && $void['error'] == 1 ) {
+						PrestaShopLogger::addLog( $void['message'] );
+						$response = array(
+							'error'   => 1,
+							'message' => $this->dispErrors( $void['message'] ),
+						);
+					} else {
+						if ( ! empty( $void['transaction'] ) ) {
+							//Update order status
+							if($change_status){
+								$order->setCurrentState( (int) Configuration::get( 'PS_OS_CANCELED' ), $this->context->employee->id );
+							}
+							$currency_multiplier = $this->getPaylikeCurrencyMultiplier( $currency->iso_code );
+							/* Set message */
+							$message = 'Trx ID: ' . $transactionid . '
+									Authorized Amount: ' . ( $void['transaction']['amount'] / $currency_multiplier ) . '
+									Refunded Amount: ' . ( $void['transaction']['refundedAmount'] / $currency_multiplier ) . '
+									Order time: ' . $void['transaction']['created'] . '
+									Currency code: ' . $void['transaction']['currency'];
+
+							$message = strip_tags( $message, '<br>' );
+							if ( Validate::isCleanHtml( $message ) ) {
+								if ( $this->getPSV() == '1.7.2' ) {
+									$id_customer_thread = CustomerThread::getIdCustomerThreadByEmailAndIdOrder( $customer->email, $order->id );
+									if ( ! $id_customer_thread ) {
+										$customer_thread              = new CustomerThread();
+										$customer_thread->id_contact  = 0;
+										$customer_thread->id_customer = (int) $order->id_customer;
+										$customer_thread->id_shop     = (int) $this->context->shop->id;
+										$customer_thread->id_order    = (int) $order->id;
+										$customer_thread->id_lang     = (int) $this->context->language->id;
+										$customer_thread->email       = $customer->email;
+										$customer_thread->status      = 'open';
+										$customer_thread->token       = Tools::passwdGen( 12 );
+										$customer_thread->add();
+									} else {
+										$customer_thread = new CustomerThread( (int) $id_customer_thread );
+									}
+
+									$customer_message                     = new CustomerMessage();
+									$customer_message->id_customer_thread = $customer_thread->id;
+									$customer_message->id_employee        = 0;
+									$customer_message->message            = $message;
+									$customer_message->private            = 1;
+
+									$customer_message->add();
+								} else {
+									$msg              = new Message();
+									$msg->message     = $message;
+									$msg->id_cart     = (int) $order->id_cart;
+									$msg->id_customer = (int) $order->id_customer;
+									$msg->id_order    = (int) $order->id;
+									$msg->private     = 1;
+									$msg->add();
+								}
+							}
+
+							/* Set response */
+							$response = array(
+								'success' => 1,
+								'message' => $this->dispErrors( $this->l('Transaction successfully Voided.') ),
+							);
+						} else {
+							if ( ! empty( $void[0]['message'] ) ) {
+								$response = array(
+									'warning' => 1,
+									'message' => $this->dispErrors( $void[0]['message'] ),
+								);
+							} else {
+								$response = array(
+									'error'   => 1,
+									'message' => $this->dispErrors( $this->l('Opps! An error occured while Void.') ),
+								);
+							}
+						}
+					}
+				} else {
+					$response = array(
+						'error'   => 1,
+						'message' => $this->dispErrors( $this->l('Invalid paylike transaction.') ),
+					);
+				}
+				break;
+		}
+		return $response;
 	}
 }
