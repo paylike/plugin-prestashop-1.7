@@ -364,10 +364,9 @@ class PrestashopRunner extends PrestashopTestHelper {
 	 * @throws TimeOutException
 	 */
 	public function selectOrder() {
-		$this->goToPage( "/index.php?controller=AdminOrders", '.btn-continue', true );
-        $this->click( ".btn-continue" );
-		$this->waitForElement( '.text-right .btn-group .icon-search-plus' );
-		$this->click( '.text-right .btn-group .icon-search-plus' );
+		$this->goToPage( "/index.php?controller=AdminOrders", '#page-header-desc-configuration-add', true );
+		$this->waitForElement( '.text-right .btn[data-original-title="View"]' );
+		$this->click( '.text-right .btn[data-original-title="View"]' );
 	}
 
 	/**
