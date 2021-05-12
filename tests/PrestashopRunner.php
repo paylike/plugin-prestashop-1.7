@@ -377,7 +377,7 @@ class PrestashopRunner extends PrestashopTestHelper {
 	public function refund() {
 		$this->waitForElement( '#paylike_action' );
 		$this->selectValue( "#paylike_action", "refund" );
-		$refund = preg_match_all( '!\d+!', $this->getText( '.amount strong' ), $refund_value );
+		$refund = preg_match_all( '!\d+!', $this->getText( '#orderTotal' ), $refund_value );
 		$refund_value = $refund_value[0];
 		$this->type( 'paylike_amount_to_refund', $refund_value[0] );
 		$this->click( '#submit_paylike_action' );
