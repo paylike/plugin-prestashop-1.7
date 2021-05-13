@@ -4,7 +4,7 @@
  * @author    DerikonDevelopment <ionut@derikon.com>
  * @copyright Copyright (c) permanent, DerikonDevelopment
  * @license   Addons PrestaShop license limitation
- * @version   1.1.2
+ * @version   1.2.0
  * @link      http://www.derikon.com/
  *
  */

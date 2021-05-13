@@ -149,6 +149,23 @@ class PrestashopTestHelper
         return $this;
     }
 
+	/**
+	 * set value from select by option label
+	 *
+	 * @param $selectQuery
+	 * @param $value
+	 *
+	 * @return $this
+	 * @throws NoSuchElementException
+	 * @throws \Facebook\WebDriver\Exception\UnexpectedTagNameException
+	 */
+	public function selectValueByLabel($selectQuery, $value) {
+		$select = new WebDriverSelect($this->find($selectQuery));
+		$select->selectByVisibleText($value);
+
+		return $this;
+	}
+
     /**
      * @param $selectQuery
      * @param $value

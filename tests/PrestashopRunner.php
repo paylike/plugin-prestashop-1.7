@@ -160,22 +160,6 @@ class PrestashopRunner extends PrestashopTestHelper {
 	/**
 	 * @throws NoSuchElementException
 	 * @throws TimeOutException
-	 */
-	public function changeDecimal() {
-		$this->goToPage( 'wp-admin/admin.php?page=wc-settings', '#select2-prestashop_currency-container' );
-		$this->type( '#prestashop_price_decimal_sep', '.' );
-	}
-
-	/**
-	 *
-	 */
-	public function submitAdmin() {
-		$this->click( '#module_form_submit_btn' );
-	}
-
-	/**
-	 * @throws NoSuchElementException
-	 * @throws TimeOutException
 	 * @throws UnexpectedTagNameException
 	 */
 	private function directPayment() {
@@ -189,7 +173,6 @@ class PrestashopRunner extends PrestashopTestHelper {
 		$this->finalPaylike();
 		$this->selectOrder();
 		if ( $this->capture_mode == 'delayed' ) {
-			$this->checkNoCaptureWarning();
 			$this->capture();
 		} else {
 			$this->refund();
@@ -197,17 +180,6 @@ class PrestashopRunner extends PrestashopTestHelper {
 
 	}
 
-	/**
-	 * @throws NoSuchElementException
-	 * @throws TimeOutException
-	 * @throws UnexpectedTagNameException
-	 */
-	public function checkNoCaptureWarning() {
-		$this->moveOrderToStatus( 'Payment accepted' );
-		$text = $this->pluckElement( '.history-status tr td', 1 )->getText();
-		$messages = explode( "\n", $text );
-		$this->main_test->assertEquals( 'Remote payment accepted', $messages[0], "Not captured warning" );
-	}
 
 	/**
 	 * @param $status
@@ -216,10 +188,8 @@ class PrestashopRunner extends PrestashopTestHelper {
 	 * @throws UnexpectedTagNameException
 	 */
 	public function moveOrderToStatus( $status ) {
-		$this->click( '#id_order_state_chosen' );
-		$this->type( ".chosen-search input", $status );
-		$this->pressEnter();
-		$this->click( 'submitState' );
+		$this->selectValueByLabel('#update_order_status_action_input',$status);
+		$this->click( '#update_order_status_action_btn' );
 	}
 
 	/**
@@ -228,17 +198,9 @@ class PrestashopRunner extends PrestashopTestHelper {
 	 * @throws UnexpectedTagNameException
 	 */
 	public function capture() {
-		$this->selectValue( "#paylike_action", "capture" );
-		$this->click( '#submit_paylike_action' );
-		$this->waitElementDisappear( ".margin-form #submit_paylike_action.disabled" );
-		$this->waitForPageReload( function () {
-		}, 5000 );
-		$text = $this->pluckElement( '.history-status tr td', 1 )->getText();
-		if ( $text == 'Delivered' || $text == 'Delivered' ) {
-			$text = $this->pluckElement( '.history-status tr td', 1 )->getText();
-		}
-		$messages = explode( "\n", $text );
-		$this->main_test->assertEquals( 'Delivered', $messages[0], "Delivered" );
+		$this->moveOrderToStatus( 'Delivered' );
+		$text = $this->pluckElement( '.tab-content #historyTabContent tr td', 0 )->getText();
+		$this->main_test->assertEquals( 'Delivered', $text, "Payment captured" );
 	}
 
 	/**
@@ -375,25 +337,14 @@ class PrestashopRunner extends PrestashopTestHelper {
 	 * @throws UnexpectedTagNameException
 	 */
 	public function refund() {
-		$this->waitForElement( '#paylike_action' );
-		$this->selectValue( "#paylike_action", "refund" );
-		$refund = preg_match_all( '!\d+!', $this->getText( '#orderTotal' ), $refund_value );
-		$refund_value = $refund_value[0];
-		$this->type( 'paylike_amount_to_refund', $refund_value[0] );
-		$this->click( '#submit_paylike_action' );
-		try {
-			$this->waitElementDisappear( ".margin-form #submit_paylike_action.disabled" );
-		} catch ( NoSuchElementException $e ) {
-			// the element may have already dissapeared
-		}
-		$this->waitForPageReload( function () {
-		}, 5000 );
-		$text = $this->pluckElement( '.history-status tr td', 1 )->getText();
-		if ( $text == 'Refunded' || $text == 'Refunded' ) {
-			$text = $this->pluckElement( '.history-status tr td', 1 )->getText();
-		}
-		$messages = explode( "\n", $text );
-		$this->main_test->assertEquals( 'Refunded', $messages[0], "Refunded" );
+		$this->waitForElement( '.partial-refund-display' );
+		$this->click('.partial-refund-display');
+		$this->type( '.refund-quantity', 1 );
+		$this->click( '#cancel_product_save' );
+
+		$this->waitForElement( '.alert.alert-success' );
+		$text = $this->pluckElement( '.alert.alert-success', 0 )->getText();
+		$this->main_test->assertEquals( 'Paylike: Transaction successfully Refunded.', $text, "Refunded" );
 	}
 
 	/**
