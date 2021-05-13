@@ -26,7 +26,7 @@ class PrestashopQuickTest extends AbstractTestCase {
 	public function testUsdPaymentBeforeOrderInstant() {
 		$this->runner = new PrestashopRunner( $this );
 		$this->runner->ready( array(
-				'capture_mode'           => 'instant',
+				'capture_mode'           => 'delayed',
 			)
 		);
 	}
