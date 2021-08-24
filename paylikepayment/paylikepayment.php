@@ -4,7 +4,6 @@
  * @author    DerikonDevelopment <ionut@derikon.com>
  * @copyright Copyright (c) permanent, DerikonDevelopment
  * @license   Addons PrestaShop license limitation
- * @version   1.2.0
  * @link      http://www.derikon.com/
  *
  */
@@ -28,7 +27,7 @@ class PaylikePayment extends PaymentModule {
 	public function __construct() {
 		$this->name      = 'paylikepayment';
 		$this->tab       = 'payments_gateways';
-		$this->version   = '1.2.0';
+		$this->version   = '1.3.0';
 		$this->author    = 'DerikonDevelopment';
 		$this->bootstrap = true;
 
@@ -768,6 +767,7 @@ class PaylikePayment extends PaymentModule {
 		}
 
 		$this->context->smarty->assign( array(
+			'active_status'             	 => Tools::getvalue( 'PAYLIKE_TRANSACTION_MODE' ),
 			'PAYLIKE_PUBLIC_KEY'             => $PAYLIKE_PUBLIC_KEY,
 			'PS_SSL_ENABLED'                 => ( Configuration::get( 'PS_SSL_ENABLED' ) ? 'https' : 'http' ),
 			'http_host'                      => Tools::getHttpHost(),
@@ -780,6 +780,7 @@ class PaylikePayment extends PaymentModule {
 			'popup_description'              => $popup_description,
 			'currency_code'                  => $currency_code,
 			'amount'                         => $amount,
+			'exponent'                       => $this->getPaylikeCurrency( $currency_code )['exponent'],
 			'id_cart'                        => Tools::jsonEncode( $params['cart']->id ),
 			'products'                       => str_replace("\u0022","\\\\\"",Tools::jsonEncode(  $products_array ,JSON_HEX_QUOT)),
 			'name'                           => $name,
@@ -2059,19 +2060,19 @@ class PaylikePayment extends PaymentModule {
 		if ( empty( $payliketransaction ) ) {
 			return false;
 		}
-	
+
 		/* If Capture or Void */
 		if ( $order_state->id == (int) Configuration::get( 'PAYLIKE_ORDER_STATUS' ) || $order_state->id == (int) Configuration::get( 'PS_OS_CANCELED' ) ) {
 			/* If custom Captured status  */
 			if ( $order_state->id == (int) Configuration::get( 'PAYLIKE_ORDER_STATUS' ) ) {
 				$response = $this->doPaylikeAction($id_order,"capture");
 			}
-			
+
 			/* If Canceled status */
 			if ( $order_state->id == (int) Configuration::get( 'PS_OS_CANCELED' ) ) {
-				$response = $this->doPaylikeAction($id_order,"void");	
+				$response = $this->doPaylikeAction($id_order,"void");
 			}
-			
+
 			/* Log response */
 			PrestaShopLogger::addLog( $response['message'] );
 
@@ -2117,7 +2118,7 @@ class PaylikePayment extends PaymentModule {
 			$response = $this->doPaylikeAction($id_order,$paylike_action,true,Tools::getValue( 'paylike_amount_to_refund' ));
 			die( Tools::jsonEncode( $response ) );
 		}
-		
+
 		if ( Tools::getIsset( 'upload_logo' ) ) {
 			$logo_name = Tools::getValue( 'logo_name' );
 
@@ -2397,7 +2398,7 @@ class PaylikePayment extends PaymentModule {
 								if($change_status){
 									$order->setCurrentState( (int) Configuration::get( 'PS_OS_REFUND' ), $this->context->employee->id );
 								}
-								
+
 								/* Update transaction details */
 								$fields = array(
 									'refunded_amount' => $payliketransaction['refunded_amount'] + $paylike_amount_to_refund,

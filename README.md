@@ -56,12 +56,72 @@ Under the extension settings, you can:
 
 
  ## Refunding, voiding and capturing
- * To refund an order make sure you checked the "Refund Paylike" checkbox durring the default Prestashop procedure for Partial Refund. Standard Refund and Return Product procedures also have this feature only for Prestashop version >= 1.7.7.
+ * To `Refund` an order make sure you checked the "Refund Paylike" checkbox durring the default Prestashop procedure for Partial Refund. Standard Refund and Return Product procedures also have this feature only for Prestashop version >= 1.7.7.
  Note: If for some reason the Refund procedure via Paylike fails, you will be notified and manual action will be required in your online Paylike Tool account.
- * To void an order move the order status to "Canceled".
- * To capture an order in delayed mode, use the status set in settings (move the order to that status).
+ * To `Void` an order move the order status to "Canceled".
+ * To `Capture` an order in delayed mode, use the status set in Paylike module settings (move the order to that status).
 
  * For Prestashop < 1.7.7 you can procede capture, void and refund actions via Paylike toolbox also.
 
  ## Advanced
  Due to the floating point precision issue with some numbers, it is recommended to have the bcmath extension installed.
+
+ ## Changelog
+
+#### 1.3.0:
+- Updated js SDK to 10.js
+- Updated logic to work with SDK v10 version
+- Removed module version from other files
+
+#### 1.2.0:
+- Compatibility fixes for Prestashop version > 1.7.7.x
+- Updated tests
+
+#### 1.1.2:
+- One Page Supercheckout compatibility patch
+
+#### 1.1.1:
+- Update to js SDK 6.js
+
+#### 1.1.0:
+- Integration with One Page Checkout v4.0.10 - by PresTeamShop: Disable preloader after order payment popup is triggered
+
+#### 1.0.9:
+- Bug Fix: Check Terms & Conditions checkbox before order submission.
+- Bug fix - Disable the checkout button together with the checkbox
+
+#### 1.0.8:
+- Bug fix - Escape double quotes for json encoded products string
+
+#### 1.0.7:
+- Updated Travis
+- Compatibility fix - PHP 5.6 Tested on Prestashop 1.7.2.4 +
+- Bug fix - Replace deprecated window load event listener on checkout page
+- Add onepagecheckout support
+
+#### 1.0.6:
+- Added logic to validate the public and private keys upon saving.
+- Fixes - Code review
+- Updated tests
+
+#### 1.0.5:
+- Fix tests for newer PS versions
+- Add transaction id to payment storage
+
+#### 1.0.4:
+- Modified structure with tests
+- Fix rounding and add travis
+- Update testing info
+
+#### 1.0.3:
+- Update readme, refactor javascript
+
+#### 1.0.2:
+- Fixed translation issue
+
+#### 1.0.1:
+- Added zip file
+- Removed capture descriptor
+
+#### 1.0.0:
+- Initial commit
