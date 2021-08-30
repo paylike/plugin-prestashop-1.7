@@ -26,7 +26,10 @@
         var PayLikePayment = {
             init: function() {
                 {/literal}
-                PayLikePayment.PAYLIKE_PUBLIC_KEY = "{$PAYLIKE_PUBLIC_KEY|escape:'htmlall':'UTF-8'}";
+                PayLikePayment.PAYLIKE_PUBLIC_KEY = {
+                    key : "{$PAYLIKE_PUBLIC_KEY|escape:'htmlall':'UTF-8'}"
+                };
+                PayLikePayment.active_status = "{$active_status}";
                 PayLikePayment.paylike = Paylike(PayLikePayment.PAYLIKE_PUBLIC_KEY);
                 PayLikePayment.shop_name = "{$shop_name|escape:'htmlall':'UTF-8'}";
                 PayLikePayment.PS_SSL_ENABLED = "{$PS_SSL_ENABLED|escape:'htmlall':'UTF-8'}";
@@ -35,7 +38,8 @@
                 PayLikePayment.popup_title = "{$popup_title|escape:'htmlall':'UTF-8'}";
                 PayLikePayment.popup_description = "{$popup_description}";
                 PayLikePayment.currency_code = "{$currency_code|escape:'htmlall':'UTF-8'}";
-                PayLikePayment.amount = "{$amount|escape:'htmlall':'UTF-8'}";
+                PayLikePayment.amount = {$amount|escape:'htmlall':'UTF-8'};
+                PayLikePayment.exponent = {$exponent};
                 PayLikePayment.products = "{$products}"; //html variable can not be escaped;
                 PayLikePayment.products= JSON.parse(PayLikePayment.products.replace(/&quot;/g, '"'));
                 PayLikePayment.name = "{$name|escape:'htmlall':'UTF-8'}";
@@ -52,9 +56,9 @@
                 PayLikePayment.qry_str = "{$qry_str}";
                 {literal}
 
-                /* 
+                /*
                  * Integration with One Page Supercheckout
-                 * Skip events if One Page Supercheckout 
+                 * Skip events if One Page Supercheckout
                  */
                 if(typeof window.supercheckoutLayout === 'undefined'){
                     PayLikePayment.bindPaymentMethodsClick();
@@ -64,10 +68,14 @@
                 }
             },
             pay: function() {
-                PayLikePayment.paylike.popup({
+                PayLikePayment.paylike.pay({
+                    test: ('live' === PayLikePayment.active_status) ? (false) : (true),
                     title: PayLikePayment.popup_title,
-                    currency: PayLikePayment.currency_code,
-                    amount: PayLikePayment.amount,
+                    amount: {
+                        currency: PayLikePayment.currency_code,
+                        exponent: PayLikePayment.exponent,
+                        value: PayLikePayment.amount
+                    },
                     description: PayLikePayment.popup_description,
                     locale: PayLikePayment.locale,
                     custom: {
@@ -106,7 +114,7 @@
                 var $paymentConfirmation = $('#payment-confirmation');
                 $paymentConfirmation.find("div").removeClass('active').addClass('disabled');
                 $paymentConfirmation.find("button").removeClass('active').addClass('disabled');
-                /* 
+                /*
                  * Integration with One Page Checkout v4.0.10 - by PresTeamShop
                  * Disable preloader if is defined
                  */
@@ -169,35 +177,35 @@
             ////////////////////////////////////////////
         };
 
-        /* 
+        /*
          * Integration with One Page Supercheckout
          * Init Paylike SDK
          */
         if (typeof window.supercheckoutLayout !== 'undefined' && typeof window.initialized === 'undefined') {
-            $.getScript('https://sdk.paylike.io/6.js',function(){
+            $.getScript('https://sdk.paylike.io/10.js',function(){
                 initialized = true;
             });
         }
 
-        /* 
+        /*
          * Integration with One Page Checkout v4.0.10 - by PresTeamShop
          * Init Paylike SDK
          */
         if (typeof OnePageCheckoutPS !== typeof undefined) {
             $(document).on('opc-load-review:completed', function() {
-                $.getScript('https://sdk.paylike.io/6.js',function(){
+                $.getScript('https://sdk.paylike.io/10.js',function(){
                     PayLikePayment.init();
                 });
             });
         } else {
-            /* 
+            /*
             * Default
             * Init Paylike SDK
             */
             document.addEventListener("DOMContentLoaded", function(event) {
-                $.getScript('https://sdk.paylike.io/6.js',function(){
+                $.getScript('https://sdk.paylike.io/10.js',function(){
                     PayLikePayment.init();
-                });  
+                });
             });
         }
         {/literal}

@@ -4,7 +4,6 @@
  * @author    DerikonDevelopment <ionut@derikon.com>
  * @copyright Copyright (c) permanent, DerikonDevelopment
  * @license   Addons PrestaShop license limitation
- * @version   1.0.0
  * @link      http://www.derikon.com/
  *
  */
@@ -19,7 +18,6 @@ namespace Paylike;
  * The purpose of this is to abstract the requests
  * so that this can be changed depending on the environment.
  *
- * @version    1.0.0
  */
 if ( ! class_exists( 'Paylike\\Adapter' ) ) {
 	class Adapter {
