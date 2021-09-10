@@ -767,7 +767,7 @@ class PaylikePayment extends PaymentModule {
 		}
 
 		$this->context->smarty->assign( array(
-			'active_status'             	 => Tools::getvalue( 'PAYLIKE_TRANSACTION_MODE' ),
+			'active_status'             	 => Configuration::get( 'PAYLIKE_TRANSACTION_MODE' ),
 			'PAYLIKE_PUBLIC_KEY'             => $PAYLIKE_PUBLIC_KEY,
 			'PS_SSL_ENABLED'                 => ( Configuration::get( 'PS_SSL_ENABLED' ) ? 'https' : 'http' ),
 			'http_host'                      => Tools::getHttpHost(),
