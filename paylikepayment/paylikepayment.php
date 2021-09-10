@@ -27,7 +27,7 @@ class PaylikePayment extends PaymentModule {
 	public function __construct() {
 		$this->name      = 'paylikepayment';
 		$this->tab       = 'payments_gateways';
-		$this->version   = '1.3.0';
+		$this->version   = '1.4.0';
 		$this->author    = 'DerikonDevelopment';
 		$this->bootstrap = true;
 

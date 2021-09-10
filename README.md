@@ -68,7 +68,7 @@ Under the extension settings, you can:
 
  ## Changelog
 
-#### 1.3.0:
+#### 1.4.0:
 - Updated js SDK to 10.js
 - Updated logic to work with SDK v10 version
 - Removed module version from other files
