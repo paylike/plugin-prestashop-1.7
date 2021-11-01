@@ -11,7 +11,7 @@ You can also find information about the plugin here: https://paylike.io/plugins/
 [![Last succesfull test](https://log.derikon.ro/api/v1/log/read?tag=prestashop17&view=svg&label=Prestashop&key=ecommerce&background=011638)](https://log.derikon.ro/api/v1/log/read?tag=prestashop17&view=html)
 
 * The plugin has been tested with most versions of Prestashop at every iteration. We recommend using the latest version of Prestashop, but if that is not possible for some reason, test the plugin with your Prestashop version and it would probably function properly.
-    - Last tested on version: Prestashop 1.7.7.5
+    - Last tested on version: Prestashop 1.7.8.0
 
 
 ## Installation
@@ -69,6 +69,9 @@ Under the extension settings, you can:
  ## Changelog
 
 #### 1.4.0:
+- replaced Tools class with Configuration class in paylikepayment.php file at L770 (to get actual module transaction mode "test/live")
+
+#### 1.3.0:
 - Updated js SDK to 10.js
 - Updated logic to work with SDK v10 version
 - Removed module version from other files
