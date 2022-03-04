@@ -100,8 +100,11 @@ export var TestMethods = {
         /** Add to cart. */
         cy.get('button.add-to-cart').click();
 
+        /** Wait to add to cart. */
+        cy.wait(2000);
+
         /** Go to checkout. */
-        cy.goToPage(this.StoreUrl + '/index.php?controller=order', {timeout: 10000});
+        cy.goToPage(this.StoreUrl + '/index.php?controller=order');
 
         /** Continue. */
         cy.get('button[name="confirm-addresses"]').click();
@@ -196,6 +199,7 @@ export var TestMethods = {
 
             case 'void':
                 cy.get('#update_order_status_new_order_status_id').select('Canceled');
+                cy.get('.btn-primary.update-status').click();
             break;
         }
 
