@@ -9,7 +9,12 @@ describe('paylike plugin quick test', () => {
      * Login into admin and frontend to store cookies.
      */
     before(() => {
-        cy.goToPage(TestMethods.StoreUrl + '/index.php?route=account/login');
+        /**
+         * Note
+         * "/index.php?controller=authentication&back=my-account" may be an old uri
+         * On Prestashop newer versions is redirect to "/login?&back=my-account"
+         */
+        cy.goToPage(TestMethods.StoreUrl + '/index.php?controller=authentication&back=my-account');
         TestMethods.loginIntoClientAccount();
         cy.goToPage(Cypress.env('ENV_ADMIN_URL'));
         TestMethods.loginIntoAdminBackend();
