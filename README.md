@@ -8,7 +8,7 @@ Released under the MIT license: https://opensource.org/licenses/MIT
 You can also find information about the plugin here: https://paylike.io/plugins/prestashop-1.7
 
 ## Supported Prestashop versions
-[![Last succesfull test](https://log.derikon.ro/api/v1/log/read?tag=prestashop17&view=svg&label=Prestashop&key=ecommerce&background=011638)](https://log.derikon.ro/api/v1/log/read?tag=prestashop17&view=html)
+[![Last succesfull test](https://log.derikon.ro/api/v1/log/read?tag=prestashop17&view=svg&label=Prestashop&key=ecommerce&background=25B9D7)](https://log.derikon.ro/api/v1/log/read?tag=prestashop17&view=html)
 
 *The plugin has been tested with most versions of Prestashop at every iteration. We recommend using the latest version of Prestashop, but if that is not possible for some reason, test the plugin with your Prestashop version and it would probably function properly.*
 
