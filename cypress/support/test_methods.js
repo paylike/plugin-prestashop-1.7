@@ -16,6 +16,7 @@ export var TestMethods = {
     PaylikeName: 'paylike',
     OrderStatusForCapture: '',
     PaymentMethodAdminUrl: '/index.php?controller=AdminModules&configure=paylikepayment',
+    ModulesAdminUrl: '/index.php?controller=AdminModules',
     OrdersPageAdminUrl: '/index.php/sell/orders',
 
     /**
@@ -37,14 +38,7 @@ export var TestMethods = {
      */
     changePaylikeCaptureMode(captureMode) {
         /** Go to Paylike payment method. */
-        cy.goToPage(this.PaymentMethodAdminUrl);
-
-        /**
-         * Accept token warning.
-         * This warning show up even if we set the token on url.
-         * So, we do not set it and click on the button.
-         */
-        cy.get(`a[href*="${this.PaymentMethodAdminUrl}"]`).click();
+        this.goToPageAndIgnoreWarning(this.PaymentMethodAdminUrl);
 
         /**
          * Get order statuses to be globally used.
@@ -144,14 +138,7 @@ export var TestMethods = {
      */
     processOrderFromAdmin(paylikeAction, partialAmount = false) {
         /** Go to admin orders page. */
-        cy.goToPage(this.OrdersPageAdminUrl);
-
-        /**
-         * Accept token warning.
-         * This warning show up even if we set the token on url.
-         * So, we do not set it and click on the button.
-         */
-         cy.get(`a[href*="${this.OrdersPageAdminUrl}"]`).click();
+        this.goToPageAndIgnoreWarning(this.OrdersPageAdminUrl);
 
         PaylikeTestHelper.setPositionRelativeOn('#header_infos');
         PaylikeTestHelper.setPositionRelativeOn('.header-toolbar');
@@ -234,15 +221,15 @@ export var TestMethods = {
      */
     logVersions() {
         /** Get framework version. */
-        cy.get('#footer').then($frameworkVersion => {
+        cy.get('#shop_version').then($frameworkVersion => {
             var frameworkVersion = ($frameworkVersion.text()).replace(/.*[^0-9.]/g, '');
             cy.wrap(frameworkVersion).as('frameworkVersion');
         });
 
-        cy.goToPage(this.PaymentMethodAdminUrl);
+        this.goToPageAndIgnoreWarning(this.ModulesAdminUrl);
 
         /** Get Paylike version. */
-        cy.get('.panel-title').invoke('attr', 'data-paylike-version').then($pluginVersion => {
+        cy.get(`div[data-tech-name*=${this.PaylikeName}]`).invoke('attr', 'data-version').then($pluginVersion => {
             cy.wrap($pluginVersion).as('pluginVersion');
         });
 
@@ -261,5 +248,18 @@ export var TestMethods = {
                 });
             });
         });
+    },
+
+    /**
+     * Go to page & ignore token warning
+     */
+    goToPageAndIgnoreWarning(pageUri) {
+        cy.goToPage(pageUri);
+        /**
+         * Accept token warning.
+         * This warning show up even if we set the token on url.
+         * So, we do not set it and click on the button.
+         */
+         cy.get(`a[href*="${pageUri}"]`).click();
     },
 }
