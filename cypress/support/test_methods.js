@@ -23,12 +23,19 @@ export var TestMethods = {
      * Login to admin backend account
      */
     loginIntoAdminBackend() {
+        cy.goToPage(this.AdminUrl);
         cy.loginIntoAccount('input[name=email]', 'input[name=passwd]', 'admin');
     },
     /**
      * Login to client|user frontend account
      */
     loginIntoClientAccount() {
+        /**
+         * Note
+         * "/index.php?controller=authentication&back=my-account" may be an old uri
+         * On Prestashop newer versions it redirect to "/login?&back=my-account"
+         */
+        cy.goToPage(this.StoreUrl + '/index.php?controller=authentication&back=my-account');
         cy.loginIntoAccount('input[id=field-email]', 'input[name=password]', 'client');
     },
 
