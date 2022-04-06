@@ -49,3 +49,5 @@ fabric.properties
 .env.production
 /vendor
 logs
+node_modules
+cypress.env.json

@@ -1,2 +1,0 @@
-#!/bin/bash
-./vendor/bin/steward run staging chrome --group="prestashop_full_test" -vv
