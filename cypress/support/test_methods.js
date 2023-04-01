@@ -114,7 +114,7 @@ export var TestMethods = {
         cy.wait(200);
 
         /** Choose Paylike. */
-        cy.get(`input[data-module-name*=${this.PaylikeName}]`).click();
+        cy.get(`input[data-module-name*=${this.PaylikeName}]`).check();
 
         /** Check amount. */
         cy.get('div.cart-summary-line.cart-total .value').then($grandTotal => {
