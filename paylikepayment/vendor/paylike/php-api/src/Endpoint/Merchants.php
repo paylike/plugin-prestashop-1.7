@@ -2,6 +2,7 @@
 
 namespace Paylike\Endpoint;
 
+use Paylike\Endpoint\Merchant\Lines;
 use Paylike\Utils\Cursor;
 
 /**
@@ -54,7 +55,7 @@ class Merchants extends Endpoint
     {
         $url = 'merchants/' . $merchant_id;
 
-        $this->paylike->client->request('PUT', $url, $args);
+        return $this->paylike->client->request('PUT', $url, $args);
     }
 
     /**
@@ -100,5 +101,21 @@ class Merchants extends Endpoint
     public function after($app_id, $merchant_id)
     {
         return $this->find($app_id, array('after' => $merchant_id));
+    }
+
+    /**
+     * return Lines
+     */
+    public function lines()
+    {
+        return new Lines($this->paylike);
+    }
+
+    /**
+     * return Lines
+     */
+    public function apps()
+    {
+        return new \Paylike\Endpoint\Merchant\Apps($this->paylike);
     }
 }

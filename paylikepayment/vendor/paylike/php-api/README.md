@@ -66,6 +66,12 @@ $merchants->update($merchant_id, $args);
 $all_merchants = $merchants->find($app_id,$args);
 $some_merchants = $merchants->before($app_id,$before);
 $some_merchants = $merchants->after($app_id,$before);
+$all_lines = $merchants->lines()->find($merchant_id,$args);
+$some_lines = $merchants->lines()->before($merchant_id,$before);
+$some_lines = $merchants->lines()->after($merchant_id, $after);
+$all_apps = $merchants->apps()->find($merchant_id,$args);
+$merchants->lines()->add($merchant_id,$app_id);
+$merchants->lines()->revoke($merchant_id,$app_id);
  
 $cards = $paylike->cards();
 $cards->create($merchant_id, $args);
