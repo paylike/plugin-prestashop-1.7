@@ -66,12 +66,11 @@ class PaylikePayment extends PaymentModule {
 		Configuration::updateValue( 'PAYLIKE_SECRET_KEY', '' );
 
 		return ( parent::install()
-		         && $this->registerHook( 'header' )
 		         && $this->registerHook( 'payment' )
 		         && $this->registerHook( 'paymentOptions' )
-		         && $this->registerHook( 'paymentReturn' )
+		         && ((int)substr(_PS_VERSION_, 0, 1) < 8 ? $this->registerHook( 'paymentReturn' ) : $this->registerHook( 'displayPaymentReturn' ))
 		         && $this->registerHook( 'DisplayAdminOrder' )
-		         && $this->registerHook( 'BackOfficeHeader' )
+		         && ((int)substr(_PS_VERSION_, 0, 1) < 8 ? $this->registerHook( 'BackOfficeHeader' ) : $this->registerHook( 'displayBackOfficeHeader' ))
 		         && $this->registerHook( 'actionOrderStatusPostUpdate' )
 		         && $this->registerHook( 'actionOrderSlipAdd' )
 		         && $this->installDb() );
@@ -688,12 +687,6 @@ class PaylikePayment extends PaymentModule {
 		return $this->display( __FILE__, 'views/templates/admin/modal.tpl' );
 	}
 
-	public function hookHeader() {
-		/*if(Configuration::get('PAYLIKE_STATUS') == 'enabled' && $this->context->controller->php_self == 'order') {
-            $this->context->controller->addJs('https://sdk.paylike.io/3.js');
-        }*/
-	}
-
 	public function hookPaymentOptions( $params ) {
 		$language_code = Configuration::get( 'PAYLIKE_LANGUAGE_CODE' );
 		//ensure paylike key is set
@@ -781,8 +774,8 @@ class PaylikePayment extends PaymentModule {
 			'currency_code'                  => $currency_code,
 			'amount'                         => $amount,
 			'exponent'                       => $this->getPaylikeCurrency( $currency_code )['exponent'],
-			'id_cart'                        => Tools::jsonEncode( $params['cart']->id ),
-			'products'                       => str_replace("\u0022","\\\\\"",Tools::jsonEncode(  $products_array ,JSON_HEX_QUOT)),
+			'id_cart'                        => json_encode( $params['cart']->id ),
+			'products'                       => str_replace("\u0022","\\\\\"",json_encode(  $products_array ,JSON_HEX_QUOT)),
 			'name'                           => $name,
 			'email'                          => $email,
 			'telephone'                      => $telephone,
@@ -808,7 +801,17 @@ class PaylikePayment extends PaymentModule {
 		return $payment_options;
 	}
 
-	public function hookpaymentReturn( $params ) {
+	/** PS 8 compatibility */
+	public function hookDisplayPaymentReturn( $params ) {
+		return $this->paymentReturn($params);
+	}
+
+		/** PS 1.7 compatibility */
+	public function hookPaymentReturn( $params ) {
+		return $this->paymentReturn($params);
+	}
+
+	private function paymentReturn( $params ) {
 		if ( ! $this->active || ! isset( $params['objOrder'] ) || $params['objOrder']->module != $this->name ) {
 			return false;
 		}
@@ -2090,7 +2093,17 @@ class PaylikePayment extends PaymentModule {
 		}
 	}
 
+	/** PS 8 compatibility */
+	public function hookDisplayBackOfficeHeader() {
+		$this->backOfficeHeader();
+	}
+
+	/** PS 1.7 compatibility */
 	public function hookBackOfficeHeader() {
+		$this->backOfficeHeader();
+	}
+
+	private function backOfficeHeader() {
 		if ($this->context->cookie->__isset('response_error')) {
 			/** Display persistent */
 			$this->context->controller->errors[] = '<p>'.$this->context->cookie->__get('response_error').'</p>';
@@ -2116,7 +2129,7 @@ class PaylikePayment extends PaymentModule {
 			$paylike_action = Tools::getValue( 'paylike_action' );
 			$id_order = (int) Tools::getValue( 'id_order' );
 			$response = $this->doPaylikeAction($id_order,$paylike_action,true,Tools::getValue( 'paylike_amount_to_refund' ));
-			die( Tools::jsonEncode( $response ) );
+			die( json_encode( $response ) );
 		}
 
 		if ( Tools::getIsset( 'upload_logo' ) ) {
@@ -2127,7 +2140,7 @@ class PaylikePayment extends PaymentModule {
 					'status'  => 0,
 					'message' => 'Please give logo name.'
 				);
-				die( Tools::jsonEncode( $response ) );
+				die( json_encode( $response ) );
 			}
 
 			$logo_slug = Tools::strtolower( str_replace( ' ', '-', $logo_name ) );
@@ -2141,7 +2154,7 @@ class PaylikePayment extends PaymentModule {
 					'status'  => 0,
 					'message' => 'This name already exists.'
 				);
-				die( Tools::jsonEncode( $response ) );
+				die( json_encode( $response ) );
 			}
 
 			if ( ! empty( $_FILES['logo_file']['name'] ) ) {
@@ -2159,7 +2172,7 @@ class PaylikePayment extends PaymentModule {
                         'status' => 0,
                         'message' => 'File is not an image. Please upload JPG, JPEG, PNG or GIF file.'
                     );
-                    die(Tools::jsonEncode($response));
+                    die(json_encode($response));
                 }*/
 
 				// Check if file already exists
@@ -2168,7 +2181,7 @@ class PaylikePayment extends PaymentModule {
 						'status'  => 0,
 						'message' => 'Sorry, file already exists.'
 					);
-					die( Tools::jsonEncode( $response ) );
+					die( json_encode( $response ) );
 				}
 
 				// Allow certain file formats
@@ -2178,7 +2191,7 @@ class PaylikePayment extends PaymentModule {
 						'status'  => 0,
 						'message' => 'Sorry, only JPG, JPEG, PNG, GIF & SVG files are allowed.'
 					);
-					die( Tools::jsonEncode( $response ) );
+					die( json_encode( $response ) );
 				}
 
 				if ( move_uploaded_file( $_FILES['logo_file']["tmp_name"], $target_file ) ) {
@@ -2189,28 +2202,28 @@ class PaylikePayment extends PaymentModule {
 							'message' => "The file " . basename( $file_name ) . " has been uploaded."
 						);
 						//Configuration::updateValue('PAYLIKE_PAYMENT_METHOD_CREDITCARD_LOGO', basename($file_name));
-						die( Tools::jsonEncode( $response ) );
+						die( json_encode( $response ) );
 					} else {
 						unlink( $target_file );
 						$response = array(
 							'status'  => 0,
 							'message' => "Oops! An error occured while save logo."
 						);
-						die( Tools::jsonEncode( $response ) );
+						die( json_encode( $response ) );
 					}
 				} else {
 					$response = array(
 						'status'  => 0,
 						'message' => 'Sorry, there was an error uploading your file.'
 					);
-					die( Tools::jsonEncode( $response ) );
+					die( json_encode( $response ) );
 				}
 			} else {
 				$response = array(
 					'status'  => 0,
 					'message' => 'Please select a file for upload.'
 				);
-				die( Tools::jsonEncode( $response ) );
+				die( json_encode( $response ) );
 			}
 		}
 
